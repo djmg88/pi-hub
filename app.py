@@ -1754,7 +1754,7 @@ def api_network_nodes():
 
 @app.route('/api/live/stream/<machine>')
 def live_stream(machine):
-    hosts = {'msi': '100.82.77.13', 'lenovo': '100.102.210.39'}
+    hosts = {'msi': '192.168.1.107', 'lenovo': '100.102.210.39'}
     if machine not in hosts:
         return jsonify({'error': 'unknown machine'}), 400
     try:
@@ -1782,7 +1782,7 @@ def live():
 
 @app.route('/api/live/mic/<machine>/status')
 def live_mic_status(machine):
-    hosts = {'msi': '100.82.77.13', 'lenovo': '100.102.210.39'}
+    hosts = {'msi': '192.168.1.107', 'lenovo': '100.102.210.39'}
     if machine not in hosts:
         return jsonify({'error': 'unknown machine'}), 400
     try:
@@ -1794,7 +1794,7 @@ def live_mic_status(machine):
 
 @app.route('/api/live/mic/<machine>/toggle', methods=['POST'])
 def live_mic_toggle(machine):
-    hosts = {'msi': '100.82.77.13', 'lenovo': '100.102.210.39'}
+    hosts = {'msi': '192.168.1.107', 'lenovo': '100.102.210.39'}
     if machine not in hosts:
         return jsonify({'error': 'unknown machine'}), 400
     try:
