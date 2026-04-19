@@ -1757,10 +1757,16 @@ def live_stream(machine):
     hosts = {'msi': '100.82.77.13', 'lenovo': '100.102.210.39'}
     if machine not in hosts:
         return jsonify({'error': 'unknown machine'}), 400
-    def generate():
+    try:
+        upstream = urllib.request.urlopen(
+            urllib.request.Request(f'http://{hosts[machine]}:8080/stream'),
+            timeout=5
+        )
+    except Exception:
+        return '', 503
+    def generate(resp):
         try:
-            req = urllib.request.Request(f'http://{hosts[machine]}:8080/stream')
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with resp:
                 while True:
                     chunk = resp.read(4096)
                     if not chunk:
@@ -1768,7 +1774,7 @@ def live_stream(machine):
                     yield chunk
         except Exception:
             return
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(generate(upstream), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/live')
 def live():

@@ -1425,6 +1425,10 @@ function dismissAlarm() {
   alarmFiring = false;
   document.getElementById('alarm-firing').style.display = 'none';
   stopAlarmSound();
+  localStorage.removeItem('house_hub_alarm');
+  document.getElementById('alarm-active').style.display = 'none';
+  document.getElementById('alarm-empty').style.display  = 'flex';
+  document.getElementById('alarm-tag').textContent      = 'off';
 }
 
 // Prime AudioContext on first interaction so autoplay works
