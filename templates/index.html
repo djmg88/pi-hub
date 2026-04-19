@@ -1044,6 +1044,8 @@ const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Sat
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DSHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+let alarmFiring = false;
+
 function tick() {
   const n = new Date();
   let h = n.getHours();
@@ -1362,7 +1364,6 @@ setInterval(loadTodayEvents, 300000);
 
 // ── Alarm Audio Engine ───────────────────────────────────────────────────
 let alarmStyle = 1;
-let alarmFiring = false;
 let beepInterval = null;
 let audioCtx = null;
 let soundscapeGain = null;
