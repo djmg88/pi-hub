@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Device — Pi Hub</title>
+    <style>
+        :root {
+            --bg: #070b12; --glass: rgba(255,255,255,0.04); --glass-border: rgba(255,255,255,0.09);
+            --accent: #00d4ff; --accent2: #00ff9d; --accent3: #ff6b35; --accent4: #c77dff;
+            --warn: #ffb703; --danger: #ef233c; --text: rgba(255,255,255,0.92);
+            --text-muted: rgba(255,255,255,0.55); --text-dim: rgba(255,255,255,0.28);
+            --mono: 'SF Mono', 'Fira Code', monospace;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; padding: 14px 16px 24px; overflow-x: hidden; }
+        .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+        .top-bar-left { display: flex; align-items: center; gap: 12px; }
+        .back-btn { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-muted); padding: 6px 14px; font-size: 0.78rem; letter-spacing: 1px; text-decoration: none; font-family: var(--mono); transition: color 0.2s; white-space: nowrap; }
+        .back-btn:hover { color: var(--text); }
+        .page-title { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); }
+        .device-controls { display: flex; gap: 8px; }
+        .device-btn { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 1px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+        .device-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+        .device-btn.restart:hover { border-color: var(--warn); color: var(--warn); }
+        .device-btn.shutdown:hover { border-color: var(--danger); color: var(--danger); }
+        .section-header { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+        @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 400px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat-tile { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 3px; aspect-ratio: 1/1; }
+        .stat-tile.alert { border-color: rgba(239,35,60,0.3); background: rgba(239,35,60,0.04); }
+        .stat-tile.warn { border-color: rgba(255,183,3,0.3); background: rgba(255,183,3,0.04); }
+        .stat-label { font-family: var(--mono); font-size: 0.5rem; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+        .stat-value { font-family: var(--mono); font-size: 1.2rem; font-weight: 400; line-height: 1; color: var(--text); }
+        .stat-unit { font-family: var(--mono); font-size: 0.55rem; color: var(--text-muted); }
+        .stat-sub { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); }
+        .bar { width: 100%; height: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; overflow: hidden; margin-top: 2px; }
+        .bar-fill { height: 100%; border-radius: 1px; transition: width 0.5s; }
+        .val-cpu { color: #00d4ff; } .val-temp { color: #ff6b35; } .val-load { color: #ffb703; }
+        .val-ram { color: #c77dff; } .val-disk { color: #fbbf24; } .val-uptime { color: #00ff9d; }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        @media (max-width: 600px) { .info-grid { grid-template-columns: repeat(2, 1fr); } }
+        .info-tile { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; }
+        .info-label { font-family: var(--mono); font-size: 0.5rem; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+        .info-value { font-family: var(--mono); font-size: 0.82rem; color: var(--text); line-height: 1.3; word-break: break-all; }
+        .info-sub { font-family: var(--mono); font-size: 0.58rem; color: var(--text-muted); }
+        .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+        .dot-on { background: var(--accent2); } .dot-off { background: var(--danger); } .dot-warn { background: var(--warn); }
+        .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; margin-top: 2px; }
+        .signal-bar { width: 4px; border-radius: 1px; background: rgba(255,255,255,0.1); }
+        .signal-bar.active { background: var(--accent2); } .signal-bar.warn { background: var(--warn); } .signal-bar.bad { background: var(--danger); }
+        .ports-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        @media (max-width: 600px) { .ports-grid { grid-template-columns: repeat(2, 1fr); } }
+        .port-tile { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .port-icon { font-size: 1.2rem; display:flex; align-items:center; justify-content:center; color:var(--text-muted); } .port-label { font-family: var(--mono); font-size: 0.5rem; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; }
+        .port-status { font-family: var(--mono); font-size: 0.6rem; }
+        .port-status.connected { color: var(--accent2); } .port-status.disconnected { color: var(--text-dim); } .port-status.active { color: var(--accent); }
+        .sensor-panel { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px 16px; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .panel-label { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 3px; color: var(--text-dim); text-transform: uppercase; }
+        .reinit-all-btn { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 1px; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,212,255,0.05); color: var(--accent); cursor: pointer; transition: all 0.15s; }
+        .reinit-all-btn:hover { background: rgba(0,212,255,0.1); }
+        .sensor-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap; }
+        .sensor-row:last-child { border-bottom: none; }
+        .sensor-info { width: 140px; flex-shrink: 0; }
+        .sensor-name { font-family: var(--mono); font-size: 0.72rem; color: var(--text); }
+        .sensor-name-sub { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); margin-top: 2px; }
+        .sensor-status { flex-shrink: 0; font-family: var(--mono); font-size: 0.58rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; width: 80px; text-align: center; }
+        .status-online { background: rgba(0,255,157,0.1); color: var(--accent2); border: 1px solid rgba(0,255,157,0.2); }
+        .status-warmup { background: rgba(255,183,3,0.1); color: var(--warn); border: 1px solid rgba(255,183,3,0.2); }
+        .status-error { background: rgba(239,35,60,0.1); color: var(--danger); border: 1px solid rgba(239,35,60,0.2); }
+        .status-unknown { background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid rgba(255,255,255,0.1); }
+        .sensor-meta { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+        .sensor-meta-row { font-family: var(--mono); font-size: 0.55rem; color: var(--text-muted); }
+        .sensor-meta-row span { color: var(--text-dim); }
+        .sensor-result { font-family: var(--mono); font-size: 0.58rem; min-width: 80px; text-align: right; flex-shrink: 0; }
+        .sensor-result.pass { color: var(--accent2); } .sensor-result.fail { color: var(--danger); }
+        .sensor-btns { display: flex; gap: 5px; flex-shrink: 0; }
+        .action-btn { font-family: var(--mono); font-size: 0.55rem; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+        .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .action-btn.reinit:hover { border-color: var(--accent4); color: var(--accent4); }
+        .two-col { display: grid; grid-template-columns: 1fr 280px; gap: 10px; align-items: start; }
+        @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #0d1421; border: 1px solid var(--glass-border); border-radius: 16px; padding: 16px; width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+        .modal-pin-badge { display: flex; align-items: center; gap: 12px; }
+        .modal-pin-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
+        .modal-pin-info { display: flex; flex-direction: column; gap: 3px; }
+        .modal-pin-name { font-family: var(--mono); font-size: 1rem; color: var(--text); }
+        .modal-pin-sub { font-family: var(--mono); font-size: 0.62rem; color: var(--text-muted); }
+        .modal-close { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); background: none; border: 1px solid var(--glass-border); border-radius: 6px; padding: 4px 10px; cursor: pointer; transition: color 0.15s; }
+        .modal-close:hover { color: var(--text); }
+        .verdict { background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px 16px; font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+        .verdict.high { border-color: rgba(0,255,157,0.3); color: var(--accent2); background: rgba(0,255,157,0.04); }
+        .verdict.low { border-color: rgba(239,35,60,0.3); color: var(--danger); background: rgba(239,35,60,0.04); }
+        .verdict.output { border-color: rgba(0,212,255,0.3); color: var(--accent); background: rgba(0,212,255,0.04); }
+        .modal-data { display: flex; flex-direction: column; gap: 0; margin-bottom: 16px; }
+        .modal-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .modal-row:last-child { border-bottom: none; }
+        .modal-key { font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); }
+        .modal-val { font-family: var(--mono); font-size: 0.7rem; color: var(--text); }
+        .live-value { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .live-state { font-family: var(--mono); font-size: 2.5rem; font-weight: 300; line-height: 1; }
+        .live-state.high { color: var(--accent2); } .live-state.low { color: var(--danger); } .live-state.na { color: var(--text-dim); }
+        .live-state-label { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+        .pin-history { display: flex; align-items: center; gap: 2px; height: 24px; margin-bottom: 16px; }
+        .history-bar { flex: 1; border-radius: 2px; transition: height 0.2s; }
+        .modal-poll-btn { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 1px; padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(0,212,255,0.3); background: rgba(0,212,255,0.05); color: var(--accent); cursor: pointer; width: 100%; transition: all 0.15s; }
+        .modal-poll-btn:hover { background: rgba(0,212,255,0.1); }
+        .modal-poll-btn.polling { border-color: rgba(0,255,157,0.3); color: var(--accent2); background: rgba(0,255,157,0.05); }
+        .raw-line { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 10px; margin-top: 12px; word-break: break-all; line-height: 1.5; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: rgba(10,15,26,0.95); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px 18px; font-family: var(--mono); font-size: 0.68rem; color: var(--text); z-index: 999; opacity: 0; transform: translateY(10px); transition: all 0.2s; max-width: 320px; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.success { border-color: rgba(0,255,157,0.3); color: var(--accent2); }
+        .toast.error { border-color: rgba(239,35,60,0.3); color: var(--danger); }
+        .toast.warn { border-color: rgba(255,183,3,0.3); color: var(--warn); }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/" class="back-btn">← Home</a>
+            <div class="page-title">◈ Device</div>
+        </div>
+        <div class="device-controls">
+            <button class="device-btn restart" onclick="deviceAction('restart')">↺ Restart</button>
+            <button class="device-btn shutdown" onclick="deviceAction('shutdown')">⏻ Shutdown</button>
+        </div>
+    </div>
+
+    <div class="section-header">◈ Performance</div>
+    <div class="stat-grid">
+        <div class="stat-tile">
+            <div class="stat-label">CPU</div>
+            <div class="stat-value val-cpu">{{ stats.cpu_percent }}<span style="font-size:0.8rem">%</span></div>
+            <div class="bar"><div class="bar-fill" style="width:{{ stats.cpu_percent }}%;background:{% if stats.cpu_percent > 80 %}#ef4444{% elif stats.cpu_percent > 50 %}#ffb703{% else %}#00d4ff{% endif %}"></div></div>
+            <div class="stat-sub">{{ stats.cpu_count }}c · {{ stats.cpu_freq }}MHz</div>
+        </div>
+        <div class="stat-tile {% if stats.cpu_temp and stats.cpu_temp > 75 %}alert{% elif stats.cpu_temp and stats.cpu_temp > 60 %}warn{% endif %}">
+            <div class="stat-label">Temp</div>
+            <div class="stat-value val-temp">{{ stats.cpu_temp or '--' }}<span style="font-size:0.8rem">°</span></div>
+            {% if stats.cpu_temp %}<div class="bar"><div class="bar-fill" style="width:{{ [stats.cpu_temp,100]|min }}%;background:{% if stats.cpu_temp > 75 %}#ef4444{% elif stats.cpu_temp > 60 %}#ffb703{% else %}#00ff9d{% endif %}"></div></div>{% endif %}
+            <div class="stat-sub">{% if stats.cpu_temp and stats.cpu_temp > 75 %}⚠ HOT{% elif stats.cpu_temp and stats.cpu_temp > 60 %}Warm{% else %}Normal{% endif %}</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-label">Load</div>
+            <div class="stat-value val-load">{{ stats.load_avg }}</div>
+            <div class="stat-unit">1m avg</div>
+        </div>
+        <div class="stat-tile {% if stats.ram_percent > 85 %}alert{% elif stats.ram_percent > 70 %}warn{% endif %}">
+            <div class="stat-label">RAM</div>
+            <div class="stat-value val-ram">{{ stats.ram_percent }}<span style="font-size:0.8rem">%</span></div>
+            <div class="bar"><div class="bar-fill" style="width:{{ stats.ram_percent }}%;background:{% if stats.ram_percent > 85 %}#ef4444{% elif stats.ram_percent > 70 %}#ffb703{% else %}#c77dff{% endif %}"></div></div>
+            <div class="stat-sub">{{ stats.ram_used }}/{{ stats.ram_total }}GB</div>
+        </div>
+        <div class="stat-tile {% if stats.disk_percent > 90 %}alert{% elif stats.disk_percent > 75 %}warn{% endif %}">
+            <div class="stat-label">Disk</div>
+            <div class="stat-value val-disk">{{ stats.disk_percent }}<span style="font-size:0.8rem">%</span></div>
+            <div class="bar"><div class="bar-fill" style="width:{{ stats.disk_percent }}%;background:{% if stats.disk_percent > 90 %}#ef4444{% else %}#fbbf24{% endif %}"></div></div>
+            <div class="stat-sub">{{ stats.disk_used }}/{{ stats.disk_total }}GB</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-label">Uptime</div>
+            <div class="stat-value val-uptime" style="font-size:0.85rem">{{ stats.uptime }}</div>
+            {% if stats.throttled %}<div class="stat-sub" style="color:#ef233c">⚠ Throttled</div>{% endif %}
+        </div>
+    </div>
+
+    {% if stats.throttled and stats.throttle_flags %}
+    <div style="background:rgba(239,35,60,0.06);border:1px solid rgba(239,35,60,0.2);border-radius:10px;padding:10px 14px;margin-top:8px;font-family:var(--mono);font-size:0.65rem;color:#ef233c;">
+        ⚠ Throttling: {{ stats.throttle_flags | join(', ') }}
+    </div>
+    {% endif %}
+
+    <div class="section-header">◈ Network</div>
+    <div class="info-grid">
+        <div class="info-tile">
+            <div class="info-label">Local IP</div>
+            <div class="info-value" style="color:#00d4ff">{{ stats.ip_local or '--' }}</div>
+        </div>
+        <div class="info-tile">
+            <div class="info-label">Tailscale</div>
+            <div class="info-value" style="color:#c77dff">{{ stats.ip_tailscale or '--' }}</div>
+        </div>
+        <div class="info-tile">
+            <div class="info-label">WiFi</div>
+            <div class="info-value"><span class="dot dot-on"></span>{{ stats.wifi_ssid or '--' }}</div>
+            {% if stats.wifi_signal %}
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <div class="signal-bars">
+                    {% set sig = stats.wifi_signal %}
+                    {% set bars = 4 if sig >= -50 else 3 if sig >= -65 else 2 if sig >= -75 else 1 %}
+                    {% set cls = 'active' if sig >= -65 else 'warn' if sig >= -75 else 'bad' %}
+                    {% for i in range(4) %}<div class="signal-bar {{ cls if i < bars else '' }}" style="height:{{ (i+1)*3+4 }}px"></div>{% endfor %}
+                </div>
+                <span style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted)">{{ stats.wifi_signal }}dBm</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="info-tile">
+            <div class="info-label">Bluetooth</div>
+            <div class="info-value"><span class="dot {% if stats.bluetooth == 'Active' %}dot-on{% elif stats.bluetooth == 'Available' %}dot-warn{% else %}dot-off{% endif %}"></span>{{ stats.bluetooth }}</div>
+            {% if stats.bt_devices %}<div class="info-sub">{{ stats.bt_devices | join(', ') }}</div>{% endif %}
+        </div>
+        <div class="info-tile">
+            <div class="info-label">Speed Test</div>
+            {% if stats.speedtest.download %}
+            <div class="info-value" style="font-size:0.72rem">↓ {{ stats.speedtest.download }} Mbps</div>
+            <div class="info-sub">↑ {{ stats.speedtest.upload }} Mbps · {{ stats.speedtest.ping }}ms</div>
+            {% else %}
+            <div class="info-value" style="color:var(--text-dim)">{% if stats.speedtest.running %}Running...{% else %}Pending{% endif %}</div>
+            <div class="info-sub">Runs every 30 min</div>
+            {% endif %}
+        </div>
+        <div class="info-tile">
+            <div class="info-label">Hostname</div>
+            <div class="info-value" style="font-size:0.68rem;color:var(--text-muted)">{{ stats.hostname }}</div>
+            <div class="info-sub"><span class="dot {% if stats.spi_enabled %}dot-on{% else %}dot-off{% endif %}"></span>SPI {% if stats.spi_enabled %}On{% else %}Off{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="section-header">◈ Ports &amp; Peripherals</div>
+    <div class="ports-grid">
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 18v2M17 18v2M7 20h10"/><path d="M8 10h8v4H8z"/></svg></div><div class="port-label">HDMI 0</div><div class="port-status disconnected">Unused</div></div>
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M7 18v2M17 18v2M7 20h10"/><path d="M8 10h8v4H8z"/></svg></div><div class="port-label">HDMI 1</div><div class="port-status disconnected">Unused</div></div>
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div><div class="port-label">CSI Camera</div><div class="port-status {% if stats.camera_detected %}connected{% else %}disconnected{% endif %}">{% if stats.camera_detected %}Connected{% else %}Empty{% endif %}</div></div>
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg></div><div class="port-label">Audio 3.5mm</div><div class="port-status disconnected">Unused</div></div>
+        {% for dev in stats.usb_ports.devices %}
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M12 2v10M8 6l4-4 4 4M7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4M17 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4M7 16h2m6 0h2m-8 0V12m8 0v4M9 12h6"/></svg></div><div class="port-label">USB</div><div class="port-status connected">{{ dev }}</div></div>
+        {% endfor %}
+        {% for i in range(4 - stats.usb_ports.connected) %}
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M12 2v10M8 6l4-4 4 4M7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4M17 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4M7 16h2m6 0h2m-8 0V12m8 0v4M9 12h6"/></svg></div><div class="port-label">USB</div><div class="port-status disconnected">Empty</div></div>
+        {% endfor %}
+        {% for dev in stats.serial_devices %}
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 0 1 7.38 16.74M12 2a10 10 0 0 0-7.38 16.74M12 22v-4M4.93 4.93l2.83 2.83M19.07 4.93l-2.83 2.83"/></svg></div><div class="port-label">Serial</div><div class="port-status active">{{ dev.label }}</div></div>
+        {% endfor %}
+        <div class="port-tile"><div class="port-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg></div><div class="port-label">SD Card</div><div class="port-status connected">{{ stats.sd_name or 'Inserted' }}</div></div>
+    </div>
+
+    <div class="two-col" style="margin-top:16px;">
+        <div class="sensor-panel">
+            <div class="panel-header">
+                <div class="panel-label">◈ Sensor Array</div>
+                <button class="reinit-all-btn" onclick="reinitSensor('all', this)">↺ Reinit All</button>
+            </div>
+            <div class="sensor-row">
+                <div class="sensor-info"><div class="sensor-name">DHT11</div><div class="sensor-name-sub">Temp · Humidity · GPIO4</div></div>
+                <div class="sensor-status status-unknown" id="dht-status">Unknown</div>
+                <div class="sensor-meta">
+                    <div class="sensor-meta-row"><span>Last read: </span><span id="dht-last">--</span></div>
+                    <div class="sensor-meta-row"><span>Last test: </span><span id="dht-test-time">--</span></div>
+                </div>
+                <div class="sensor-result" id="dht-result"></div>
+                <div class="sensor-btns">
+                    <button class="action-btn reinit" onclick="reinitSensor('dht11', this)">↺ Reinit</button>
+                    <button class="action-btn" onclick="testSensor('dht11', this)">Test</button>
+                </div>
+            </div>
+            <div class="sensor-row">
+                <div class="sensor-info"><div class="sensor-name">BMP180</div><div class="sensor-name-sub">Pressure · I2C 0x77</div></div>
+                <div class="sensor-status status-unknown" id="bmp-status">Unknown</div>
+                <div class="sensor-meta">
+                    <div class="sensor-meta-row"><span>Last read: </span><span id="bmp-last">--</span></div>
+                    <div class="sensor-meta-row"><span>Last test: </span><span id="bmp-test-time">--</span></div>
+                </div>
+                <div class="sensor-result" id="bmp-result"></div>
+                <div class="sensor-btns">
+                    <button class="action-btn reinit" onclick="reinitSensor('bmp180', this)">↺ Recal</button>
+                    <button class="action-btn" onclick="testSensor('bmp180', this)">Test</button>
+                </div>
+            </div>
+            <div class="sensor-row">
+                <div class="sensor-info"><div class="sensor-name">NEO-7M GPS</div><div class="sensor-name-sub">Position · ttyACM0</div></div>
+                <div class="sensor-status status-unknown" id="gps-status">Unknown</div>
+                <div class="sensor-meta">
+                    <div class="sensor-meta-row"><span>Last read: </span><span id="gps-last">--</span></div>
+                    <div class="sensor-meta-row"><span>Last test: </span><span id="gps-test-time">--</span></div>
+                </div>
+                <div class="sensor-result" id="gps-result"></div>
+                <div class="sensor-btns">
+                    <button class="action-btn reinit" onclick="reinitSensor('gps', this)">↺ Reset</button>
+                    <button class="action-btn" onclick="testSensor('gps', this)">Test</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<div class="modal-overlay" id="pinModal" onclick="closePinModal(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-pin-badge">
+                <div class="modal-pin-circle" id="modal-pin-circle">--</div>
+                <div class="modal-pin-info">
+                    <div class="modal-pin-name" id="modal-pin-name">--</div>
+                    <div class="modal-pin-sub" id="modal-pin-sub">--</div>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closePinModalDirect()">Close</button>
+        </div>
+        <div class="verdict" id="modal-verdict">Reading pin...</div>
+        <div class="live-value">
+            <div><div class="live-state na" id="modal-live-state">--</div><div class="live-state-label" id="modal-live-label">State</div></div>
+            <div style="flex:1"><div class="pin-history" id="pin-history"></div><div style="font-family:var(--mono);font-size:0.52rem;color:var(--text-dim);margin-top:4px">Last 30 readings</div></div>
+        </div>
+        <div class="modal-data" id="modal-data"></div>
+        <button class="modal-poll-btn" id="poll-btn" onclick="togglePolling()">▶ Start Live Polling (1s)</button>
+        <div class="raw-line" id="modal-raw" style="display:none"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    function showToast(msg, type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3500);}
+    function timeAgo(ts){if(!ts)return'--';const d=Math.floor((Date.now()/1000)-ts);if(d<5)return'just now';if(d<60)return`${d}s ago`;if(d<3600)return`${Math.floor(d/60)}m ago`;return`${Math.floor(d/3600)}h ago`;}
+    function setStatus(id,status){const el=document.getElementById(id);if(!el)return;const map={online:['Online','status-online'],warmup:['Warming Up','status-warmup'],error:['Error','status-error'],unknown:['Unknown','status-unknown']};const[label,cls]=map[status]||map.unknown;el.textContent=label;el.className=`sensor-status ${cls}`;}
+
+    async function loadStatus(){try{const res=await fetch('/api/sensor_status');const d=await res.json();document.getElementById('dht-last').textContent=timeAgo(d.dht11?.last_read);setStatus('dht-status',d.dht11?.error?'error':d.dht11?.last_read?'online':'unknown');document.getElementById('bmp-last').textContent=timeAgo(d.bmp180?.last_read);setStatus('bmp-status',d.bmp180?.error?'error':d.bmp180?.last_read?'online':'unknown');document.getElementById('gps-last').textContent=timeAgo(d.gps?.last_read);setStatus('gps-status',d.gps?.error?'error':d.gps?.fix?'online':d.gps?.last_read?'warmup':'unknown');}catch(e){}}
+
+    async function testSensor(sensor,btn){const ids={dht11:{status:'dht-status',result:'dht-result',time:'dht-test-time'},bmp180:{status:'bmp-status',result:'bmp-result',time:'bmp-test-time'},gps:{status:'gps-status',result:'gps-result',time:'gps-test-time'}};const id=ids[sensor];if(!id)return;btn.disabled=true;btn.textContent='...';try{const res=await fetch(`/api/test/${sensor}`);const d=await res.json();document.getElementById(id.time).textContent='just now';const el=document.getElementById(id.result);if(d.success){el.textContent=d.reading;el.className='sensor-result pass';setStatus(id.status,'online');}else{el.textContent=d.error||'Failed';el.className='sensor-result fail';setStatus(id.status,'error');}}catch(e){document.getElementById(id.result).textContent='Error';document.getElementById(id.result).className='sensor-result fail';}btn.textContent='Test';btn.disabled=false;}
+
+    async function reinitSensor(sensor,btn){const label=btn.textContent;btn.disabled=true;btn.textContent='...';try{const res=await fetch(`/api/reinit/${sensor}`);const d=await res.json();showToast(d.success?d.message:(d.error||'Failed'),d.success?'success':'error');if(d.success)loadStatus();}catch(e){showToast('Request failed','error');}btn.textContent=label;btn.disabled=false;}
+
+    async function deviceAction(action){const msg=action==='restart'?'Restart Pi? Dashboard will be offline for ~30 seconds.':'Shut down Pi? You will need physical access to turn it back on.';if(!confirm(msg))return;try{const res=await fetch(`/api/device/${action}`);const d=await res.json();showToast(d.message,action==='restart'?'warn':'error');}catch(e){showToast('Command sent','warn');}}
+
+
+    let currentPin=null,pollingInterval=null,pinHistory=[],isPolling=false;
+
+    async function openPinModal(pinNum,pinName,pinType,gpioNum){currentPin={pinNum,pinName,pinType,gpioNum};pinHistory=[];isPolling=false;const circle=document.getElementById('modal-pin-circle');circle.textContent=pinNum;if(pinType==='power'){circle.style.background='#ef4444';circle.style.color='#000';}else if(pinType==='ground'){circle.style.background='#1a2235';circle.style.border='1px solid #2d3f5e';circle.style.color='rgba(255,255,255,0.3)';}else{circle.style.background='rgba(0,212,255,0.1)';circle.style.border='1px solid rgba(0,212,255,0.3)';circle.style.color='#00d4ff';}document.getElementById('modal-pin-name').textContent=pinName;document.getElementById('modal-pin-sub').textContent=`Physical Pin ${pinNum}${gpioNum>=0?` · GPIO${gpioNum}`:''} · ${pinType.toUpperCase()}`;document.getElementById('modal-verdict').textContent='Reading pin...';document.getElementById('modal-verdict').className='verdict';document.getElementById('modal-data').innerHTML='';document.getElementById('modal-raw').style.display='none';document.getElementById('poll-btn').textContent='▶ Start Live Polling (1s)';document.getElementById('poll-btn').className='modal-poll-btn';document.getElementById('pinModal').classList.add('show');if(pinType==='power'||pinType==='ground'){document.getElementById('modal-verdict').textContent=pinType==='power'?'Power rail — provides voltage to connected components.':'Ground rail — reference voltage for the circuit.';document.getElementById('modal-live-state').textContent=pinType==='power'?'3.3V / 5V':'GND';document.getElementById('modal-live-state').className='live-state na';document.getElementById('modal-live-label').textContent=pinType==='power'?'Supply':'Reference';document.getElementById('poll-btn').style.display='none';return;}document.getElementById('poll-btn').style.display='block';await readPin();}
+
+    async function readPin(){if(!currentPin||currentPin.gpioNum<0)return;try{const res=await fetch(`/api/gpio/pin/${currentPin.gpioNum}`);const d=await res.json();if(!d.success){document.getElementById('modal-verdict').textContent=d.error||'Read failed';return;}const pin=d.data;const stateEl=document.getElementById('modal-live-state');const labelEl=document.getElementById('modal-live-label');if(pin.value===1){stateEl.textContent='HIGH';stateEl.className='live-state high';labelEl.textContent='1 / Logic High';}else if(pin.value===0){stateEl.textContent='LOW';stateEl.className='live-state low';labelEl.textContent='0 / Logic Low';}else{stateEl.textContent='--';stateEl.className='live-state na';labelEl.textContent='Unknown';}const verdictEl=document.getElementById('modal-verdict');verdictEl.textContent=pin.verdict||'';if(pin.value===1)verdictEl.className=pin.direction==='OUTPUT'?'verdict output':'verdict high';else if(pin.value===0)verdictEl.className='verdict low';else verdictEl.className='verdict';document.getElementById('modal-data').innerHTML=[['Direction',pin.direction||'--'],['Current State',pin.value===1?'HIGH (1)':pin.value===0?'LOW (0)':'--'],['Consumer',pin.consumer||'None — pin is free'],['Pull Resistor',pin.pull||'--']].map(([k,v])=>`<div class="modal-row"><div class="modal-key">${k}</div><div class="modal-val">${v}</div></div>`).join('');pinHistory.push(pin.value);if(pinHistory.length>30)pinHistory.shift();renderHistory();if(pin.raw_line){const rawEl=document.getElementById('modal-raw');rawEl.textContent=pin.raw_line;rawEl.style.display='block';}}catch(e){document.getElementById('modal-verdict').textContent='Error reading pin';}}
+
+    function renderHistory(){const container=document.getElementById('pin-history');container.innerHTML=pinHistory.map(v=>{const color=v===1?'rgba(0,255,157,0.7)':v===0?'rgba(239,35,60,0.5)':'rgba(255,255,255,0.1)';const height=v===1?'100%':v===0?'30%':'50%';return`<div class="history-bar" style="background:${color};height:${height};align-self:flex-end"></div>`;}).join('');}
+
+    function togglePolling(){if(isPolling){clearInterval(pollingInterval);isPolling=false;document.getElementById('poll-btn').textContent='▶ Start Live Polling (1s)';document.getElementById('poll-btn').className='modal-poll-btn';}else{isPolling=true;document.getElementById('poll-btn').textContent='⏹ Stop Polling';document.getElementById('poll-btn').className='modal-poll-btn polling';pollingInterval=setInterval(readPin,1000);}}
+
+    function closePinModal(e){if(e.target===document.getElementById('pinModal'))closePinModalDirect();}
+    function closePinModalDirect(){if(pollingInterval){clearInterval(pollingInterval);pollingInterval=null;}isPolling=false;currentPin=null;pinHistory=[];document.getElementById('pinModal').classList.remove('show');}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closePinModalDirect();});
+
+    loadStatus();setInterval(loadStatus,30000);
+</script>
+</body>
+</html>

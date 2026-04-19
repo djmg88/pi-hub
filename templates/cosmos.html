@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmos — Pi Hub</title>
+    <style>
+        :root {
+            --bg: #070b12;
+            --glass: rgba(255,255,255,0.04);
+            --glass-border: rgba(255,255,255,0.09);
+            --accent: #00d4ff;
+            --accent2: #00ff9d;
+            --accent4: #c77dff;
+            --text: rgba(255,255,255,0.92);
+            --text-muted: rgba(255,255,255,0.55);
+            --text-dim: rgba(255,255,255,0.28);
+            --mono: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .page {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 14px 20px;
+            gap: 12px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+
+        .back-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            font-size: 0.78rem;
+            letter-spacing: 1px;
+            text-decoration: none;
+            font-family: var(--mono);
+            transition: color 0.2s;
+        }
+
+        .back-btn:hover { color: var(--text); }
+
+        .page-title {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .clear-btn {
+            font-family: var(--mono);
+            font-size: 0.62rem;
+            letter-spacing: 1px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .clear-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 4px 0;
+            min-height: 0;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .message.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .avatar.ai {
+            background: rgba(199,125,255,0.15);
+            border: 1px solid rgba(199,125,255,0.3);
+        }
+
+        .avatar.user-av {
+            background: rgba(0,212,255,0.15);
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+
+        .bubble {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--text);
+            max-width: calc(100% - 48px);
+        }
+
+        .message.user .bubble {
+            background: rgba(0,212,255,0.06);
+            border-color: rgba(0,212,255,0.15);
+            color: var(--text);
+        }
+
+        .bubble.thinking {
+            color: var(--text-dim);
+            font-style: italic;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+        }
+
+        .thinking-dots span {
+            animation: blink 1.4s infinite;
+            opacity: 0;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+
+        .welcome {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .welcome-icon { font-size: 3rem; margin-bottom: 16px; }
+
+        .welcome h2 {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent4);
+            margin-bottom: 12px;
+        }
+
+        .welcome p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .suggestion {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 8px 18px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: var(--mono);
+            letter-spacing: 0.5px;
+        }
+
+        .suggestion:hover {
+            border-color: rgba(199,125,255,0.4);
+            color: var(--accent4);
+            background: rgba(199,125,255,0.05);
+        }
+
+        .input-area {
+            flex-shrink: 0;
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-wrap {
+            flex: 1;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 12px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .input-wrap:focus-within {
+            border-color: rgba(199,125,255,0.4);
+        }
+
+        textarea {
+            width: 100%;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 0.88rem;
+            font-family: inherit;
+            resize: none;
+            line-height: 1.5;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        textarea::placeholder { color: var(--text-dim); }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(199,125,255,0.3);
+            background: rgba(199,125,255,0.1);
+            color: var(--accent4);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { background: rgba(199,125,255,0.2); }
+        .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .model-badge {
+            font-family: var(--mono);
+            font-size: 0.52rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 4px 0;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <a href="/" class="back-btn">← Home</a>
+            <div class="page-title">🔭 Cosmos AI</div>
+        </div>
+        <button class="clear-btn" onclick="clearChat()">↺ Clear</button>
+    </div>
+
+    <div class="chat-container" id="chat">
+        <div class="welcome" id="welcome">
+            <div class="welcome-icon">🌌</div>
+            <h2>Cosmos AI</h2>
+            <p>Your local space and cosmology intelligence. Ask anything about the universe — running entirely on your Pi, completely private.</p>
+            <div class="suggestions">
+                <div class="suggestion" onclick="sendSuggestion(this)">Why is the Fermi Paradox so disturbing?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Explain the block universe theory</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Could consciousness collapse quantum probability?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">What happens at the edge of the observable universe?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Is time real or an illusion?</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-wrap">
+            <textarea id="input" placeholder="Ask about the cosmos..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+    <div class="model-badge">◈ Mistral 7B · Running locally on Pi · No internet required</div>
+</div>
+
+<script>
+    let history = [];
+    let thinking = false;
+
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    }
+
+    function sendSuggestion(el) {
+        document.getElementById('input').value = el.textContent;
+        sendMessage();
+    }
+
+    function clearChat() {
+        history = [];
+        const chat = document.getElementById('chat');
+        chat.innerHTML = '';
+        const welcome = document.createElement('div');
+        welcome.id = 'welcome';
+        welcome.className = 'welcome';
+        welcome.innerHTML = `
+            <div class="welcome-icon">🌌</div>
+            <h2>Cosmos AI</h2>
+            <p>Your local space and cosmology intelligence. Ask anything about the universe — running entirely on your Pi, completely private.</p>
+            <div class="suggestions">
+                <div class="suggestion" onclick="sendSuggestion(this)">Why is the Fermi Paradox so disturbing?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Explain the block universe theory</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Could consciousness collapse quantum probability?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">What happens at the edge of the observable universe?</div>
+                <div class="suggestion" onclick="sendSuggestion(this)">Is time real or an illusion?</div>
+            </div>`;
+        chat.appendChild(welcome);
+    }
+
+    function addMessage(role, content, isThinking = false) {
+        const welcome = document.getElementById('welcome');
+        if (welcome) welcome.remove();
+
+        const chat = document.getElementById('chat');
+        const msg = document.createElement('div');
+        msg.className = `message ${role === 'user' ? 'user' : 'ai'}`;
+        if (isThinking) msg.id = 'thinking-msg';
+
+        const avatar = document.createElement('div');
+        avatar.className = `avatar ${role === 'user' ? 'user-av' : 'ai'}`;
+        avatar.textContent = role === 'user' ? '👤' : '🔭';
+
+        const bubble = document.createElement('div');
+        bubble.className = isThinking ? 'bubble thinking' : 'bubble';
+
+        if (isThinking) {
+            bubble.innerHTML = `Thinking <span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>`;
+        } else {
+            bubble.textContent = content;
+        }
+
+        msg.appendChild(avatar);
+        msg.appendChild(bubble);
+        chat.appendChild(msg);
+        chat.scrollTop = chat.scrollHeight;
+        return msg;
+    }
+
+    async function sendMessage() {
+        if (thinking) return;
+        const input = document.getElementById('input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        input.value = '';
+        input.style.height = 'auto';
+        thinking = true;
+        document.getElementById('sendBtn').disabled = true;
+
+        addMessage('user', message);
+        addMessage('ai', '', true);
+
+        try {
+            const res = await fetch('/api/cosmos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message, history })
+            });
+            const data = await res.json();
+
+            const thinkingMsg = document.getElementById('thinking-msg');
+            if (thinkingMsg) thinkingMsg.remove();
+
+            history.push({ role: 'user', content: message });
+            history.push({ role: 'assistant', content: data.reply });
+
+            addMessage('ai', data.reply);
+
+        } catch(e) {
+            const thinkingMsg = document.getElementById('thinking-msg');
+            if (thinkingMsg) thinkingMsg.remove();
+            addMessage('ai', 'Error connecting to Ollama. Make sure it is running.');
+        }
+
+        thinking = false;
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('input').focus();
+    }
+</script>
+
+</body>
+</html>

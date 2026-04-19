@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Hub</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1c2128;
+    --border:    #30363d;
+    --text:      #e6edf3;
+    --muted:     #7d8590;
+    --dim:       #484f58;
+    --green:     #3fb950;
+    --red:       #f85149;
+    --amber:     #d29922;
+    --blue:      #58a6ff;
+    --purple:    #bc8cff;
+    --sidebar-w: 200px;
+    --topbar-h:  44px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── TOP STATUS BAR ── */
+  #topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 0;
+    z-index: 100;
+  }
+
+  #topbar .brand {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+    font-weight: 600;
+    margin-right: auto;
+  }
+
+  #topbar .brand span {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .topbar-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    border-left: 1px solid var(--border);
+    height: 100%;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .topbar-stat .val {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  #threat-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    border-left: 1px solid var(--border);
+    height: 100%;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-green  { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .dot-red    { background: var(--red);   box-shadow: 0 0 4px var(--red); }
+  .dot-amber  { background: var(--amber); box-shadow: 0 0 4px var(--amber); }
+  .dot-blue   { background: var(--blue);  box-shadow: 0 0 4px var(--blue); }
+  .dot-dim    { background: var(--dim); }
+
+  #topbar-logout {
+    padding: 0 16px;
+    border-left: 1px solid var(--border);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+  #topbar-logout:hover { color: var(--red); }
+
+  #topbar-time {
+    padding: 0 16px;
+    border-left: 1px solid var(--border);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    min-width: 90px;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 12px 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav-section {
+    padding: 8px 16px 4px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, background 0.15s;
+    user-select: none;
+  }
+
+  .nav-item:hover {
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  .nav-item.active {
+    color: var(--text);
+    border-left-color: var(--blue);
+    background: rgba(88,166,255,0.06);
+  }
+
+  .nav-item .nav-icon {
+    font-size: 13px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    margin-left: var(--sidebar-w);
+    margin-top: var(--topbar-h);
+    padding: 20px 24px;
+    min-height: calc(100vh - var(--topbar-h));
+  }
+
+  .tab-section { display: none; }
+  .tab-section.active { display: block; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .section-sub {
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .section-action {
+    margin-left: auto;
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+
+  .kpi-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 9px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-60-40 {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .panel-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  .panel-body {
+    padding: 12px 14px;
+  }
+
+  /* ── TABLES ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+
+  .data-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(48,54,61,0.4);
+    color: var(--text);
+    font-family: inherit;
+    vertical-align: middle;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+
+  .data-table tr:hover td { background: var(--surface2); }
+
+  .data-table .td-muted { color: var(--muted); }
+  .data-table .td-dim   { color: var(--dim); }
+  .data-table .td-mono  { font-family: inherit; }
+  .data-table .td-right { text-align: right; }
+  .data-table .td-green { color: var(--green); }
+  .data-table .td-red   { color: var(--red); }
+  .data-table .td-amber { color: var(--amber); }
+  .data-table .td-blue  { color: var(--blue); }
+
+  /* ── STATUS TAGS ── */
+  .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .tag-blocked  { background: rgba(248,81,73,0.15);  color: var(--red);    border: 1px solid rgba(248,81,73,0.3); }
+  .tag-allowed  { background: rgba(63,185,80,0.1);   color: var(--green);  border: 1px solid rgba(63,185,80,0.25); }
+  .tag-cached   { background: rgba(88,166,255,0.1);  color: var(--blue);   border: 1px solid rgba(88,166,255,0.25); }
+  .tag-online   { background: rgba(63,185,80,0.1);   color: var(--green);  border: 1px solid rgba(63,185,80,0.25); }
+  .tag-offline  { background: rgba(248,81,73,0.15);  color: var(--red);    border: 1px solid rgba(248,81,73,0.3); }
+  .tag-warn     { background: rgba(210,153,34,0.1);  color: var(--amber);  border: 1px solid rgba(210,153,34,0.3); }
+
+  /* ── NODE ROW ── */
+  .node-row {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .node-cell {
+    flex: 1;
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .node-info .node-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .node-info .node-host {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 1px;
+  }
+
+  .node-latency {
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .node-latency.offline { color: var(--red); font-size: 11px; }
+
+  /* ── CHART ── */
+  .chart-wrap {
+    padding: 12px 14px;
+    height: 140px;
+    position: relative;
+  }
+
+  /* ── BLOCKING TOGGLE ── */
+  .blocking-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+
+  .blocking-toggle-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .btn-toggle {
+    margin-left: auto;
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: 1px solid;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-toggle:hover { opacity: 0.8; }
+
+  .btn-toggle.on  { background: rgba(63,185,80,0.1);  color: var(--green); border-color: rgba(63,185,80,0.4); }
+  .btn-toggle.off { background: rgba(248,81,73,0.1);  color: var(--red);   border-color: rgba(248,81,73,0.4); }
+
+  /* ── SERVICE CARDS ── */
+  .service-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .service-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .service-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .service-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+
+  .service-card-body {
+    padding: 0;
+  }
+
+  .service-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(48,54,61,0.4);
+    font-size: 11px;
+  }
+
+  .service-row:last-child { border-bottom: none; }
+  .service-row-label { color: var(--muted); }
+  .service-row-value { color: var(--text); font-weight: 500; }
+
+  /* ── DNS LOG CONTROLS ── */
+  .log-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+
+  .log-filter-btn {
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .log-filter-btn:hover, .log-filter-btn.active {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: rgba(88,166,255,0.08);
+  }
+
+  .log-filter-btn.active-blocked { border-color: var(--red); color: var(--red); background: rgba(248,81,73,0.08); }
+
+  .log-search {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 4px 10px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+
+  .log-search:focus { border-color: var(--blue); }
+  .log-search::placeholder { color: var(--dim); }
+
+  .log-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--dim);
+  }
+
+  /* ── DNS LOG TABLE ── */
+  #dns-log-tbody tr.new-entry {
+    animation: rowflash 0.8s ease-out;
+  }
+
+  @keyframes rowflash {
+    0%   { background: rgba(88,166,255,0.15); }
+    100% { background: transparent; }
+  }
+
+  /* ── BANDWIDTH ── */
+  .bw-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .bw-cell {
+    background: var(--surface);
+    padding: 12px 14px;
+  }
+
+  .bw-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+
+  .bw-value {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .bw-rx { color: var(--green); }
+  .bw-tx { color: var(--blue); }
+
+  /* ── LOADING STATE ── */
+  .loading {
+    color: var(--dim);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .error-row {
+    color: var(--red);
+    font-size: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  /* ── SCROLLABLE TABLE WRAPPER ── */
+  .table-scroll {
+    max-height: 480px;
+    overflow-y: auto;
+  }
+
+  .table-scroll::-webkit-scrollbar { width: 4px; }
+  .table-scroll::-webkit-scrollbar-track { background: transparent; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── SECURITY SECTION ── */
+  .ufw-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.4);
+    font-size: 11px;
+  }
+  .ufw-rule:last-child { border-bottom: none; }
+  .ufw-port { color: var(--blue); width: 80px; }
+  .ufw-proto { color: var(--dim); width: 40px; }
+  .ufw-desc { color: var(--muted); }
+
+  /* ── REFRESH INDICATOR ── */
+  #refresh-indicator {
+    position: fixed;
+    bottom: 12px;
+    right: 16px;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP STATUS BAR -->
+<div id="topbar">
+  <div class="brand">NETWORK HUB <span>/ 192.168.1.108</span></div>
+
+  <div class="topbar-stat">
+    <span>DNS</span>
+    <span class="val" id="tb-queries">—</span>
+  </div>
+  <div class="topbar-stat">
+    <span>BLOCKED</span>
+    <span class="val" id="tb-blocked">—</span>
+  </div>
+  <div class="topbar-stat">
+    <span>DEVICES</span>
+    <span class="val" id="tb-devices">—</span>
+  </div>
+  <div class="topbar-stat">
+    <span>BANS</span>
+    <span class="val" id="tb-bans">—</span>
+  </div>
+
+  <div id="threat-badge">
+    <div class="dot dot-dim" id="threat-dot"></div>
+    <span id="threat-text">LOADING</span>
+  </div>
+
+  <div id="topbar-time">--:--:--</div>
+  <a id="topbar-logout" href="/network/logout">LOGOUT</a>
+</div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="nav-section">Monitor</div>
+  <div class="nav-item active" data-tab="overview">
+    <span class="nav-icon">◈</span> Overview
+  </div>
+  <div class="nav-item" data-tab="dns">
+    <span class="nav-icon">◎</span> DNS Log
+  </div>
+  <div class="nav-item" data-tab="devices">
+    <span class="nav-icon">◉</span> Devices
+    <span class="nav-badge" id="nav-device-count" style="display:none"></span>
+  </div>
+  <div class="nav-section">Infrastructure</div>
+  <div class="nav-item" data-tab="services">
+    <span class="nav-icon">◇</span> Services
+  </div>
+  <div class="nav-section">Security</div>
+  <div class="nav-item" data-tab="security">
+    <span class="nav-icon">◆</span> Security
+    <span class="nav-badge" id="nav-ban-count" style="display:none"></span>
+  </div>
+  <div class="sidebar-footer">
+    <div>Pi 4B · 8GB</div>
+    <div>Pi-hole v6 · CrowdSec</div>
+    <div>UFW · Unbound</div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+  <!-- ══ OVERVIEW ══ -->
+  <section class="tab-section active" id="tab-overview">
+    <div class="section-header">
+      <span class="section-title">Overview</span>
+      <span class="section-sub" id="overview-updated"></span>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Queries Today</div>
+        <div class="kpi-value" id="kpi-queries">—</div>
+        <div class="kpi-sub">DNS lookups</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Blocked Today</div>
+        <div class="kpi-value td-red" id="kpi-blocked">—</div>
+        <div class="kpi-sub" id="kpi-block-pct">— %</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Blocklist Size</div>
+        <div class="kpi-value" id="kpi-domains">—</div>
+        <div class="kpi-sub">domains</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Devices Online</div>
+        <div class="kpi-value" id="kpi-devices">—</div>
+        <div class="kpi-sub">on network</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Active Bans</div>
+        <div class="kpi-value" id="kpi-bans">—</div>
+        <div class="kpi-sub">CrowdSec</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Bandwidth ↓</div>
+        <div class="kpi-value" id="kpi-rx">—</div>
+        <div class="kpi-sub">today</div>
+      </div>
+    </div>
+
+    <div class="grid-60-40">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">DNS Query Volume — 24hr</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="dns-chart"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Top Blocked Domains</span>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Domain</th>
+                <th class="td-right">Hits</th>
+              </tr>
+            </thead>
+            <tbody id="top-blocked-tbody">
+              <tr><td colspan="2" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="node-row" id="node-row">
+      <div class="node-cell">
+        <div class="dot dot-dim" id="node-pi-dot"></div>
+        <div class="node-info">
+          <div class="node-label">Raspberry Pi</div>
+          <div class="node-host">192.168.1.108</div>
+        </div>
+        <div class="node-latency" id="node-pi-lat">—</div>
+      </div>
+      <div class="node-cell">
+        <div class="dot dot-dim" id="node-msi-dot"></div>
+        <div class="node-info">
+          <div class="node-label">MSI · Jellyfin</div>
+          <div class="node-host">100.82.77.13</div>
+        </div>
+        <div class="node-latency" id="node-msi-lat">—</div>
+      </div>
+      <div class="node-cell">
+        <div class="dot dot-dim" id="node-lenovo-dot"></div>
+        <div class="node-info">
+          <div class="node-label">Lenovo · Immich</div>
+          <div class="node-host">100.102.210.39</div>
+        </div>
+        <div class="node-latency" id="node-lenovo-lat">—</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Bandwidth Today</span>
+          <span class="panel-count" id="bw-interface">eth0</span>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div class="bw-row" style="border:none; border-radius:0; margin-bottom:0">
+            <div class="bw-cell">
+              <div class="bw-label">Down Today</div>
+              <div class="bw-value bw-rx" id="bw-today-rx">—</div>
+            </div>
+            <div class="bw-cell">
+              <div class="bw-label">Up Today</div>
+              <div class="bw-value bw-tx" id="bw-today-tx">—</div>
+            </div>
+            <div class="bw-cell">
+              <div class="bw-label">Down Month</div>
+              <div class="bw-value bw-rx" id="bw-month-rx">—</div>
+            </div>
+            <div class="bw-cell">
+              <div class="bw-label">Up Month</div>
+              <div class="bw-value bw-tx" id="bw-month-tx">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Alerts</span>
+          <span class="panel-count" id="recent-alert-count"></span>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="data-table">
+            <thead>
+              <tr><th>Scenario</th><th>IP</th><th>Country</th></tr>
+            </thead>
+            <tbody id="overview-alerts-tbody">
+              <tr><td colspan="3" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DNS LOG ══ -->
+  <section class="tab-section" id="tab-dns">
+    <div class="section-header">
+      <span class="section-title">DNS Log</span>
+      <span class="section-sub">Live query feed — all devices</span>
+      <div class="section-action">
+        <span style="font-size:10px; color:var(--dim)" id="dns-live-indicator">● LIVE</span>
+      </div>
+    </div>
+
+    <div class="log-controls">
+      <button class="log-filter-btn active" id="filter-all"     onclick="setFilter('all')">All</button>
+      <button class="log-filter-btn"         id="filter-blocked" onclick="setFilter('blocked')">Blocked</button>
+      <button class="log-filter-btn"         id="filter-allowed" onclick="setFilter('allowed')">Allowed</button>
+      <input  class="log-search" id="dns-search" type="text" placeholder="Filter domain or client...">
+      <span class="log-count" id="dns-log-count"></span>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Query Log</span>
+        <span class="panel-count" id="dns-refresh-time"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:80px">Time</th>
+              <th style="width:130px">Client</th>
+              <th>Domain</th>
+              <th style="width:50px">Type</th>
+              <th style="width:100px">Status</th>
+            </tr>
+          </thead>
+          <tbody id="dns-log-tbody">
+            <tr><td colspan="5" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:16px">
+      <div class="section-header">
+        <span class="section-title">Top Clients</span>
+      </div>
+      <div class="panel">
+        <div class="table-scroll" style="max-height:240px">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Client IP</th>
+                <th class="td-right">Queries</th>
+              </tr>
+            </thead>
+            <tbody id="dns-clients-tbody">
+              <tr><td colspan="2" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DEVICES ══ -->
+  <section class="tab-section" id="tab-devices">
+    <div class="section-header">
+      <span class="section-title">Devices</span>
+      <span class="section-sub" id="devices-last-scan">ARP scan results</span>
+      <div class="section-action">
+        <button class="log-filter-btn" onclick="loadDevices(true)">Rescan</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:140px">IP Address</th>
+              <th style="width:160px">MAC Address</th>
+              <th>Vendor</th>
+            </tr>
+          </thead>
+          <tbody id="devices-tbody">
+            <tr><td colspan="3" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SERVICES ══ -->
+  <section class="tab-section" id="tab-services">
+    <div class="section-header">
+      <span class="section-title">Services</span>
+      <span class="section-sub">Jellyfin · Immich</span>
+    </div>
+
+    <div class="service-grid">
+      <div class="service-card" id="jellyfin-card">
+        <div class="service-card-header">
+          <div class="dot dot-dim" id="jellyfin-dot"></div>
+          <span class="service-name">JELLYFIN</span>
+          <span style="margin-left:auto; font-size:10px; color:var(--dim)">100.82.77.13:8096</span>
+        </div>
+        <div class="service-card-body" id="jellyfin-body">
+          <div class="service-row"><span class="loading" style="padding:8px 0">Loading...</span></div>
+        </div>
+      </div>
+      <div class="service-card" id="immich-card">
+        <div class="service-card-header">
+          <div class="dot dot-dim" id="immich-dot"></div>
+          <span class="service-name">IMMICH</span>
+          <span style="margin-left:auto; font-size:10px; color:var(--dim)">100.102.210.39:2283</span>
+        </div>
+        <div class="service-card-body" id="immich-body">
+          <div class="service-row"><span class="loading" style="padding:8px 0">Loading...</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SECURITY ══ -->
+  <section class="tab-section" id="tab-security">
+    <div class="section-header">
+      <span class="section-title">Security</span>
+      <span class="section-sub">CrowdSec · UFW · Pi-hole</span>
+    </div>
+
+    <div class="blocking-toggle">
+      <span class="dot" id="blocking-dot"></span>
+      <span class="blocking-toggle-label">Pi-hole DNS Blocking</span>
+      <span id="blocking-status-text" style="font-size:10px; color:var(--muted); margin-left:4px"></span>
+      <button class="btn-toggle" id="blocking-btn" onclick="toggleBlocking()">—</button>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Active Bans</span>
+          <span class="panel-count" id="bans-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>IP Address</th>
+                <th>Scenario</th>
+                <th>Origin</th>
+                <th>Duration</th>
+              </tr>
+            </thead>
+            <tbody id="bans-tbody">
+              <tr><td colspan="4" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Alert History</span>
+          <span class="panel-count" id="alerts-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>IP</th>
+                <th>Country</th>
+                <th>Scenario</th>
+              </tr>
+            </thead>
+            <tbody id="alerts-tbody">
+              <tr><td colspan="4" class="loading">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:8px">
+      <span class="section-title">Firewall Rules (UFW)</span>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        <div class="ufw-rule"><span class="ufw-port">22/tcp</span><span class="ufw-proto">TCP</span><span class="ufw-desc">SSH — remote management</span></div>
+        <div class="ufw-rule"><span class="ufw-port">53/tcp+udp</span><span class="ufw-proto">TCP/UDP</span><span class="ufw-desc">DNS — Pi-hole</span></div>
+        <div class="ufw-rule"><span class="ufw-port">80/tcp</span><span class="ufw-proto">TCP</span><span class="ufw-desc">HTTP — Pi-hole admin UI</span></div>
+        <div class="ufw-rule"><span class="ufw-port">5000/tcp</span><span class="ufw-proto">TCP</span><span class="ufw-desc">Pi Hub — main dashboard</span></div>
+        <div class="ufw-rule"><span class="ufw-port">5002/tcp</span><span class="ufw-proto">TCP</span><span class="ufw-desc">Pi Hub — Health app</span></div>
+        <div class="ufw-rule"><span class="ufw-port">5003/tcp</span><span class="ufw-proto">TCP</span><span class="ufw-desc">Pi Hub — API Hub</span></div>
+        <div style="margin-top:10px; font-size:10px; color:var(--dim); padding-top:10px; border-top:1px solid var(--border)">
+          Default inbound: <span style="color:var(--red)">DENY ALL</span> &nbsp;·&nbsp;
+          Default outbound: <span style="color:var(--green)">ALLOW ALL</span> &nbsp;·&nbsp;
+          Engine: nftables via CrowdSec bouncer
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="refresh-indicator">AUTO-REFRESH 15s</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let dnsFilter = 'all';
+let dnsSearchTerm = '';
+let allQueries = [];
+let blockingState = true;
+let dnsChart = null;
+let devicesLoaded = false;
+
+// ── TAB NAVIGATION ─────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const tab = item.dataset.tab;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    if (tab === 'dns') loadDnsLog();
+    if (tab === 'devices' && !devicesLoaded) loadDevices();
+    if (tab === 'services') loadServices();
+    if (tab === 'security') { loadSecurity(); loadBlocking(); }
+  });
+});
+
+// ── CLOCK ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('topbar-time').textContent =
+    now.toTimeString().slice(0, 8);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── THREAT LEVEL ───────────────────────────────────────────────────────────
+function setThreat(level) {
+  const dot  = document.getElementById('threat-dot');
+  const text = document.getElementById('threat-text');
+  dot.className = 'dot';
+  if (level === 'nominal')  { dot.classList.add('dot-green');  text.textContent = 'NOMINAL';  text.style.color = 'var(--green)'; }
+  if (level === 'warning')  { dot.classList.add('dot-amber');  text.textContent = 'WARNING';  text.style.color = 'var(--amber)'; }
+  if (level === 'critical') { dot.classList.add('dot-red');    text.textContent = 'CRITICAL'; text.style.color = 'var(--red)'; }
+}
+
+function recalcThreat(bans, pihole_online, blocking) {
+  if (!pihole_online || !blocking) { setThreat('warning'); return; }
+  if (bans > 0) { setThreat('warning'); return; }
+  setThreat('nominal');
+}
+
+// ── OVERVIEW ───────────────────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [ph, nodes, bw, cs] = await Promise.all([
+      fetch('/api/network/pihole').then(r => r.json()),
+      fetch('/api/network/nodes').then(r => r.json()),
+      fetch('/api/network/bandwidth').then(r => r.json()),
+      fetch('/api/network/crowdsec').then(r => r.json()),
+    ]);
+
+    // KPIs
+    if (!ph.error) {
+      document.getElementById('kpi-queries').textContent  = ph.queries_today.toLocaleString();
+      document.getElementById('kpi-blocked').textContent  = ph.blocked_today.toLocaleString();
+      document.getElementById('kpi-block-pct').textContent = ph.block_pct + '%';
+      document.getElementById('kpi-domains').textContent  = (ph.domains_on_list / 1e6).toFixed(2) + 'M';
+      document.getElementById('tb-queries').textContent   = ph.queries_today.toLocaleString();
+      document.getElementById('tb-blocked').textContent   = ph.blocked_today.toLocaleString();
+
+      // Chart
+      renderDnsChart(ph.history);
+
+      // Top blocked
+      const tb = document.getElementById('top-blocked-tbody');
+      if (ph.top_blocked && ph.top_blocked.length) {
+        tb.innerHTML = ph.top_blocked.map(d =>
+          `<tr><td class="td-mono">${d.domain}</td><td class="td-right td-red">${d.count.toLocaleString()}</td></tr>`
+        ).join('');
+      } else {
+        tb.innerHTML = '<tr><td colspan="2" class="td-dim" style="padding:12px;text-align:center">No blocked domains today</td></tr>';
+      }
+    }
+
+    // Nodes
+    const nodeMap = { pi: '127.0.0.1', msi: '100.82.77.13', lenovo: '100.102.210.39' };
+    for (const [key, node] of Object.entries(nodes)) {
+      const dot = document.getElementById('node-' + key + '-dot');
+      const lat = document.getElementById('node-' + key + '-lat');
+      dot.className = 'dot ' + (node.online ? 'dot-green' : 'dot-red');
+      lat.className = 'node-latency' + (node.online ? '' : ' offline');
+      lat.textContent = node.online ? (node.latency_ms !== null ? node.latency_ms + 'ms' : '<1ms') : 'OFFLINE';
+    }
+
+    // Bandwidth
+    if (!bw.error) {
+      document.getElementById('bw-today-rx').textContent  = bw.today_rx;
+      document.getElementById('bw-today-tx').textContent  = bw.today_tx;
+      document.getElementById('bw-month-rx').textContent  = bw.month_rx;
+      document.getElementById('bw-month-tx').textContent  = bw.month_tx;
+      document.getElementById('kpi-rx').textContent       = bw.today_rx;
+      document.getElementById('bw-interface').textContent = bw.interface;
+    }
+
+    // CrowdSec bans
+    const banCount = cs.count || 0;
+    document.getElementById('kpi-bans').textContent = banCount;
+    document.getElementById('tb-bans').textContent  = banCount;
+    if (banCount > 0) {
+      document.getElementById('nav-ban-count').textContent = banCount;
+      document.getElementById('nav-ban-count').style.display = '';
+    }
+
+    // Threat level
+    recalcThreat(banCount, !ph.error, ph.blocking);
+
+    // Timestamp
+    document.getElementById('overview-updated').textContent =
+      'Updated ' + new Date().toTimeString().slice(0, 8);
+  } catch(e) {
+    console.error('Overview load error:', e);
+  }
+}
+
+// ── DNS CHART ──────────────────────────────────────────────────────────────
+function renderDnsChart(hourly) {
+  const labels = Array.from({length: 24}, (_, i) => {
+    const h = new Date();
+    h.setHours(h.getHours() - (23 - i), 0, 0, 0);
+    return h.getHours().toString().padStart(2, '0') + ':00';
+  });
+
+  if (dnsChart) {
+    dnsChart.data.labels = labels;
+    dnsChart.data.datasets[0].data = hourly;
+    dnsChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('dns-chart').getContext('2d');
+  dnsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: hourly,
+        backgroundColor: 'rgba(88,166,255,0.25)',
+        borderColor: 'rgba(88,166,255,0.6)',
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: '#484f58', font: { size: 9 }, maxRotation: 0 },
+          grid: { color: 'rgba(48,54,61,0.5)' },
+        },
+        y: {
+          ticks: { color: '#484f58', font: { size: 9 } },
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+// ── DNS LOG ────────────────────────────────────────────────────────────────
+async function loadDnsLog() {
+  try {
+    const data = await fetch('/api/network/dns/log').then(r => r.json());
+    allQueries = data.queries || [];
+    renderDnsTable();
+    document.getElementById('dns-refresh-time').textContent =
+      'Last: ' + new Date().toTimeString().slice(0, 8);
+  } catch(e) {
+    document.getElementById('dns-log-tbody').innerHTML =
+      '<tr><td colspan="5" class="error-row">Load failed</td></tr>';
+  }
+
+  try {
+    const cd = await fetch('/api/network/dns/clients').then(r => r.json());
+    const tbody = document.getElementById('dns-clients-tbody');
+    if (cd.clients && cd.clients.length) {
+      tbody.innerHTML = cd.clients.map(c =>
+        `<tr>
+          <td class="td-mono">${c.ip}${c.name && c.name !== c.ip ? ' <span class="td-dim">('+c.name+')</span>' : ''}</td>
+          <td class="td-right">${c.count.toLocaleString()}</td>
+        </tr>`
+      ).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="2" class="td-dim" style="padding:12px;text-align:center">No client data</td></tr>';
+    }
+  } catch(e) {}
+}
+
+function renderDnsTable() {
+  const search = dnsSearchTerm.toLowerCase();
+  const filtered = allQueries.filter(q => {
+    if (dnsFilter !== 'all' && q.status !== dnsFilter) return false;
+    if (search && !q.domain.toLowerCase().includes(search) && !q.client.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('dns-log-count').textContent =
+    filtered.length + ' of ' + allQueries.length + ' queries';
+
+  const tbody = document.getElementById('dns-log-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="td-dim" style="padding:12px;text-align:center">No matching queries</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(q => {
+    const t = new Date(q.time * 1000).toTimeString().slice(0, 8);
+    const tagClass = q.status === 'blocked' ? 'tag-blocked' : q.status === 'cached' ? 'tag-cached' : 'tag-allowed';
+    const domainClass = q.status === 'blocked' ? 'td-red' : '';
+    return `<tr>
+      <td class="td-dim">${t}</td>
+      <td class="td-mono td-muted">${q.client}</td>
+      <td class="td-mono ${domainClass}">${q.domain}</td>
+      <td class="td-dim">${q.type}</td>
+      <td><span class="tag ${tagClass}">${q.status_label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  dnsFilter = f;
+  document.querySelectorAll('.log-filter-btn').forEach(b => {
+    b.classList.remove('active', 'active-blocked');
+  });
+  const btn = document.getElementById('filter-' + f);
+  btn.classList.add(f === 'blocked' ? 'active-blocked' : 'active');
+  renderDnsTable();
+}
+
+document.getElementById('dns-search').addEventListener('input', e => {
+  dnsSearchTerm = e.target.value;
+  renderDnsTable();
+});
+
+// ── DEVICES ────────────────────────────────────────────────────────────────
+async function loadDevices(force) {
+  const tbody = document.getElementById('devices-tbody');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading">Scanning network...</td></tr>';
+  try {
+    const data = await fetch('/api/network/devices/scan').then(r => r.json());
+    const devices = data.devices || [];
+
+    document.getElementById('kpi-devices').textContent = devices.length;
+    document.getElementById('tb-devices').textContent  = devices.length;
+    if (devices.length > 0) {
+      document.getElementById('nav-device-count').textContent = devices.length;
+      document.getElementById('nav-device-count').style.display = '';
+    }
+    document.getElementById('devices-last-scan').textContent =
+      'Scanned ' + new Date().toTimeString().slice(0, 8) + ' · ' + devices.length + ' devices';
+
+    if (!devices.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="td-dim" style="padding:12px;text-align:center">No devices found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = devices.map(d =>
+      `<tr>
+        <td class="td-mono td-blue">${d.ip}</td>
+        <td class="td-mono td-muted">${d.mac}</td>
+        <td>${d.vendor}</td>
+      </tr>`
+    ).join('');
+    devicesLoaded = true;
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="3" class="error-row">Scan failed: ' + e.message + '</td></tr>';
+  }
+}
+
+// ── SERVICES ───────────────────────────────────────────────────────────────
+async function loadServices() {
+  try {
+    const data = await fetch('/api/network/services').then(r => r.json());
+
+    // Jellyfin
+    const jf = data.jellyfin;
+    document.getElementById('jellyfin-dot').className = 'dot ' + (jf.online ? 'dot-green' : 'dot-red');
+    if (jf.online) {
+      document.getElementById('jellyfin-body').innerHTML = `
+        <div class="service-row"><span class="service-row-label">Status</span><span class="service-row-value"><span class="tag tag-online">Online</span></span></div>
+        <div class="service-row"><span class="service-row-label">Server</span><span class="service-row-value">${jf.name}</span></div>
+        <div class="service-row"><span class="service-row-label">Version</span><span class="service-row-value">${jf.version}</span></div>
+        <div class="service-row"><span class="service-row-label">Active Streams</span><span class="service-row-value">${jf.active_streams}</span></div>
+        <div class="service-row"><span class="service-row-label">Library</span><span class="service-row-value">${jf.library_count.toLocaleString()} items</span></div>
+        <div class="service-row"><span class="service-row-label">Last Added</span><span class="service-row-value">${jf.last_added}</span></div>
+      `;
+    } else {
+      document.getElementById('jellyfin-body').innerHTML =
+        '<div class="service-row"><span class="service-row-label">Status</span><span class="service-row-value"><span class="tag tag-offline">Offline</span></span></div>';
+    }
+
+    // Immich
+    const im = data.immich;
+    document.getElementById('immich-dot').className = 'dot ' + (im.online ? 'dot-green' : 'dot-red');
+    if (im.online) {
+      document.getElementById('immich-body').innerHTML = `
+        <div class="service-row"><span class="service-row-label">Status</span><span class="service-row-value"><span class="tag tag-online">Online</span></span></div>
+        <div class="service-row"><span class="service-row-label">Photos</span><span class="service-row-value">${im.photos.toLocaleString()}</span></div>
+        <div class="service-row"><span class="service-row-label">Videos</span><span class="service-row-value">${im.videos.toLocaleString()}</span></div>
+        <div class="service-row"><span class="service-row-label">Storage</span><span class="service-row-value">${im.usage}</span></div>
+        <div class="service-row"><span class="service-row-label">Last Backup</span><span class="service-row-value">${im.last_backup}</span></div>
+      `;
+    } else {
+      document.getElementById('immich-body').innerHTML =
+        '<div class="service-row"><span class="service-row-label">Status</span><span class="service-row-value"><span class="tag tag-offline">Offline</span></span></div>';
+    }
+  } catch(e) {}
+}
+
+// ── SECURITY ───────────────────────────────────────────────────────────────
+async function loadSecurity() {
+  try {
+    const [cs, alerts] = await Promise.all([
+      fetch('/api/network/crowdsec').then(r => r.json()),
+      fetch('/api/network/crowdsec/alerts').then(r => r.json()),
+    ]);
+
+    // Bans
+    const bans = cs.bans || [];
+    document.getElementById('bans-count').textContent = bans.length + ' active';
+    const bansBody = document.getElementById('bans-tbody');
+    if (bans.length) {
+      bansBody.innerHTML = bans.map(b =>
+        `<tr>
+          <td class="td-mono td-red">${b.ip}</td>
+          <td class="td-muted">${b.reason}</td>
+          <td class="td-dim">${b.origin}</td>
+          <td class="td-dim">${b.duration}</td>
+        </tr>`
+      ).join('');
+    } else {
+      bansBody.innerHTML = '<tr><td colspan="4" class="td-dim" style="padding:12px;text-align:center">No active bans</td></tr>';
+    }
+
+    // Alerts
+    const alertList = alerts.alerts || [];
+    document.getElementById('alerts-count').textContent = alertList.length + ' recent';
+    document.getElementById('recent-alert-count').textContent = alertList.length;
+    const alertsBody = document.getElementById('alerts-tbody');
+    const ovBody     = document.getElementById('overview-alerts-tbody');
+    if (alertList.length) {
+      const rows = alertList.slice(0, 20).map(a => {
+        const ts = a.timestamp ? new Date(a.timestamp).toLocaleString('en-AU', {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : '—';
+        return `<tr>
+          <td class="td-dim" style="white-space:nowrap">${ts}</td>
+          <td class="td-mono td-red">${a.ip}</td>
+          <td class="td-muted">${a.country || '—'}</td>
+          <td class="td-muted">${a.scenario}</td>
+        </tr>`;
+      }).join('');
+      alertsBody.innerHTML = rows;
+      ovBody.innerHTML = alertList.slice(0, 5).map(a =>
+        `<tr>
+          <td class="td-muted">${a.scenario}</td>
+          <td class="td-mono td-red">${a.ip}</td>
+          <td class="td-dim">${a.country || '—'}</td>
+        </tr>`
+      ).join('');
+    } else {
+      alertsBody.innerHTML = '<tr><td colspan="4" class="td-dim" style="padding:12px;text-align:center">No alerts</td></tr>';
+      ovBody.innerHTML = '<tr><td colspan="3" class="td-dim" style="padding:12px;text-align:center">No recent alerts</td></tr>';
+    }
+  } catch(e) {
+    document.getElementById('bans-tbody').innerHTML   = '<tr><td colspan="4" class="error-row">Failed to load</td></tr>';
+    document.getElementById('alerts-tbody').innerHTML = '<tr><td colspan="4" class="error-row">Failed to load</td></tr>';
+  }
+}
+
+// ── BLOCKING TOGGLE ────────────────────────────────────────────────────────
+async function loadBlocking() {
+  try {
+    const ph = await fetch('/api/network/pihole').then(r => r.json());
+    blockingState = ph.blocking;
+    updateBlockingUI(blockingState);
+  } catch(e) {}
+}
+
+function updateBlockingUI(enabled) {
+  const dot  = document.getElementById('blocking-dot');
+  const btn  = document.getElementById('blocking-btn');
+  const text = document.getElementById('blocking-status-text');
+  dot.className  = 'dot ' + (enabled ? 'dot-green' : 'dot-red');
+  btn.className  = 'btn-toggle ' + (enabled ? 'on' : 'off');
+  btn.textContent = enabled ? 'ENABLED' : 'DISABLED';
+  text.textContent = enabled ? '— blocking active' : '— WARNING: blocking off';
+  text.style.color = enabled ? 'var(--muted)' : 'var(--red)';
+}
+
+async function toggleBlocking() {
+  const newState = !blockingState;
+  try {
+    const r = await fetch('/api/network/pihole/toggle', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({blocking: newState})
+    }).then(r => r.json());
+    blockingState = r.blocking;
+    updateBlockingUI(blockingState);
+    recalcThreat(0, true, blockingState);
+  } catch(e) {}
+}
+
+// ── AUTO REFRESH ───────────────────────────────────────────────────────────
+function refreshActive() {
+  const active = document.querySelector('.nav-item.active')?.dataset.tab;
+  loadOverview();
+  if (active === 'dns')      loadDnsLog();
+  if (active === 'services') loadServices();
+  if (active === 'security') { loadSecurity(); loadBlocking(); }
+}
+
+setInterval(refreshActive, 15000);
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+loadOverview();
+loadSecurity();
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Hub — Authentication</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-wrap {
+    width: 360px;
+  }
+
+  .login-header {
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .login-header .logo {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #7d8590;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .login-header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+    letter-spacing: 1px;
+  }
+
+  .login-header .subtitle {
+    font-size: 11px;
+    color: #7d8590;
+    margin-top: 6px;
+  }
+
+  .login-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 24px;
+  }
+
+  .field-label {
+    font-size: 11px;
+    color: #7d8590;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .field-input {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #e6edf3;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field-input:focus {
+    border-color: #58a6ff;
+  }
+
+  .btn-submit {
+    margin-top: 16px;
+    width: 100%;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #e6edf3;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .btn-submit:hover {
+    background: #30363d;
+    border-color: #58a6ff;
+  }
+
+  .error-msg {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #f85149;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .login-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 10px;
+    color: #484f58;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-header">
+    <div class="logo">192.168.1.108</div>
+    <h1>NETWORK HUB</h1>
+    <div class="subtitle">Restricted access — authentication required</div>
+  </div>
+  <div class="login-box">
+    <form method="POST" action="/network/login">
+      <label class="field-label" for="password">Password</label>
+      <input class="field-input" type="password" id="password" name="password" autofocus autocomplete="current-password">
+      <button class="btn-submit" type="submit">Authenticate</button>
+      {% if error %}
+      <div class="error-msg">{{ error }}</div>
+      {% endif %}
+    </form>
+  </div>
+  <div class="login-footer">Pi Hub · Dan Giret · Mooroolbark</div>
+</div>
+</body>
+</html>

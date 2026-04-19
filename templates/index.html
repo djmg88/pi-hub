@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>House Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:          #18181b;
+  --surface:     #232327;
+  --surface-hi:  #2d2d32;
+  --border:      rgba(255,255,255,0.07);
+  --border-hi:   rgba(255,255,255,0.13);
+
+  --red:    #c8313a;
+  --amber:  #f0b429;
+  --blue:   #3b9eff;
+  --green:  #22c55e;
+  --orange: #f97316;
+  --cyan:   #22d3ee;
+  --purple: #a855f7;
+  --rose:   #f43f5e;
+
+  --text:       rgba(255,255,255,0.92);
+  --text-muted: rgba(255,255,255,0.55);
+  --text-dim:   rgba(255,255,255,0.28);
+
+  --sans: 'Outfit', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  font-family: var(--sans);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 36px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+}
+
+.topbar-left {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-stat {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.topbar-stat span { color: var(--text-muted); }
+
+.topbar-live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 0.46rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: livepulse 2.5s ease-in-out infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  min-height: calc(100vh - 36px - 30px);
+}
+
+.col {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.col-mid { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+
+/* ── SECTION ── */
+.sec { display: flex; flex-direction: column; }
+
+.sec-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.sec-label {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: lowercase;
+  color: var(--text-muted);
+}
+
+.sec-tag {
+  font-family: var(--mono);
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.sec-tag.live { color: var(--green); }
+.sec-tag.live::before { content: '● '; font-size: 0.38rem; }
+
+.sec-rule { height: 1px; background: var(--red); opacity: 0.65; margin-bottom: 16px; }
+
+.sec-card {
+  background: #1e1e24;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+/* ── LIVE FEED ── */
+.live-feed-wrap {
+  aspect-ratio: 16/9;
+  background: #0e0e11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+}
+.live-feed-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.live-offline {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.live-mic-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.live-mic-status { display: flex; align-items: center; gap: 7px; }
+.live-mic-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: background 0.3s;
+}
+.live-mic-dot.active { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+.live-mic-label {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.live-mic-btn {
+  font-family: var(--mono);
+  font-size: 0.48rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.live-mic-btn:hover { color: var(--green); border-color: rgba(34,197,94,0.3); }
+.live-mic-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── CLOCK ── */
+.clock-wrap { line-height: 1; }
+.clock-time {
+  font-family: var(--mono);
+  font-size: clamp(3.8rem, 6vw, 6rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  color: var(--text);
+}
+.clock-ampm {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-left: 8px;
+}
+.clock-date {
+  margin-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* ── ALARM ── */
+.alarm-empty { display: flex; align-items: center; }
+
+.alarm-set-btn {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.alarm-set-btn:hover { border-color: var(--border-hi); color: var(--text-muted); }
+
+.alarm-active {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid rgba(240,180,41,0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.alarm-time-disp {
+  font-family: var(--mono);
+  font-size: 1.7rem;
+  font-weight: 500;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0px;
+}
+.alarm-label-disp {
+  flex: 1;
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--text-muted);
+}
+.alarm-clear-btn {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.alarm-clear-btn:hover { color: var(--rose); border-color: rgba(244,63,94,0.3); }
+
+/* ── HOUSE SENSORS ── */
+.sensor-stack { display: flex; flex-direction: column; gap: 12px; }
+
+.sensor-item { display: flex; flex-direction: column; gap: 5px; }
+
+.sensor-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.sensor-val {
+  font-family: var(--mono);
+  font-size: 1.65rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.sensor-meta { text-align: right; }
+.sensor-key {
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.sensor-range {
+  font-family: var(--mono);
+  font-size: 0.46rem;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+.spark-wrap { width: 100%; height: 34px; }
+
+.sensor-div { height: 1px; background: var(--border); margin: 2px 0; }
+
+/* ── WEATHER CENTRE ── */
+.wx-now-row { display: flex; align-items: baseline; gap: 6px; }
+.wx-now-temp {
+  font-family: var(--mono);
+  font-size: clamp(2.4rem, 3.5vw, 3.2rem);
+  font-weight: 500;
+  color: var(--amber);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.wx-now-unit { font-family: var(--mono); font-size: 1rem; color: var(--text-dim); }
+.wx-feels-line {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-left: 2px;
+}
+.wx-condition-line {
+  margin-top: 9px;
+  font-size: 0.88rem;
+  font-weight: 300;
+  color: var(--text-muted);
+}
+.wx-wind-line {
+  margin-top: 5px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+}
+.wx-uv-line {
+  margin-top: 7px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+}
+.wx-uv-val {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* ── AIR QUALITY ── */
+.air-row { display: flex; align-items: flex-start; justify-content: space-between; }
+.air-index {
+  font-family: var(--mono);
+  font-size: 2.8rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--text-dim);
+}
+.air-advice {
+  font-size: 0.72rem;
+  font-weight: 300;
+  margin-top: 7px;
+  color: var(--text-dim);
+}
+.air-pm25-wrap { text-align: right; }
+.air-pm25-val {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.air-pm25-key {
+  font-family: var(--mono);
+  font-size: 0.44rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ── RAIN STRIP ── */
+.rain-strip {
+  display: flex;
+  gap: 3px;
+  height: 58px;
+  align-items: flex-end;
+}
+.rain-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+.rain-bar-wrap { width: 100%; height: 32px; display: flex; align-items: flex-end; }
+.rain-bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 2px; }
+.rain-pct {
+  font-family: var(--mono);
+  font-size: 0.36rem;
+  color: var(--text-dim);
+  line-height: 1;
+  min-height: 0.36rem;
+}
+.rain-time {
+  font-family: var(--mono);
+  font-size: 0.38rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ── SUN ROW ── */
+.sun-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.sun-item { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.5px; color: var(--text-dim); }
+.sun-item span { color: var(--amber); }
+
+/* ── TONIGHT / STARGAZING ── */
+.tonight-head { display: flex; align-items: baseline; justify-content: space-between; }
+.tonight-verdict {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--text-dim);
+}
+.tonight-meta { font-family: var(--mono); font-size: 0.52rem; letter-spacing: 1px; color: var(--text-dim); }
+.night-strip {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.night-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.night-name {
+  font-family: var(--mono);
+  font-size: 0.42rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.night-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.night-pct { font-family: var(--mono); font-size: 0.42rem; color: var(--text-dim); }
+
+/* ── SYSTEM ── */
+.stat-rows { display: flex; flex-direction: column; gap: 11px; }
+.stat-row { display: flex; align-items: center; gap: 10px; }
+.stat-key {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  width: 46px;
+  flex-shrink: 0;
+}
+.stat-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+.stat-val {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-align: right;
+  min-width: 44px;
+}
+.stat-inline {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+/* ── NETWORK TILE ── */
+.net-rows { display: flex; flex-direction: column; gap: 9px; }
+.net-row { display: flex; justify-content: space-between; align-items: baseline; }
+.net-key { font-family: var(--mono); font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.5px; }
+.net-val { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; color: var(--text-muted); }
+.net-sub { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); }
+
+/* ── TODAY EVENTS ── */
+.today-events { display: flex; flex-direction: column; gap: 7px; }
+.today-event { display: flex; align-items: flex-start; gap: 8px; }
+.today-event-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.today-event-body { display: flex; flex-direction: column; gap: 1px; }
+.today-event-title { font-size: 0.72rem; color: var(--text-muted); line-height: 1.3; }
+.today-event-time { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); }
+.today-empty { font-family: var(--mono); font-size: 0.58rem; color: var(--text-dim); }
+
+/* ── NAV PILLS ── */
+.nav-pills { display: flex; flex-direction: column; gap: 5px; }
+.nav-pill {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.nav-pill:hover { color: var(--text-muted); background: rgba(255,255,255,0.02); border-color: var(--border-hi); }
+.nav-pill.c:hover { color: var(--cyan);   border-color: rgba(34,211,238,0.25); }
+.nav-pill.r:hover { color: var(--rose);   border-color: rgba(244,63,94,0.22); }
+.nav-pill.b:hover { color: var(--blue);   border-color: rgba(59,158,255,0.25); }
+.nav-pill.g:hover { color: var(--green);  border-color: rgba(34,197,94,0.25); }
+.nav-pill.a:hover { color: var(--amber);  border-color: rgba(240,180,41,0.25); }
+.nav-pill.p:hover { color: var(--purple); border-color: rgba(168,85,247,0.25); }
+
+/* ── FOOTER ── */
+.footer {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.42rem;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.1);
+}
+
+/* ── ALARM MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: #1e1e22;
+  border: 1px solid var(--border-hi);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 320px;
+}
+.modal-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.modal-title {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  text-transform: lowercase;
+  color: var(--text-muted);
+}
+.modal-close {
+  font-family: var(--mono);
+  font-size: 0.52rem;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--text-muted); }
+
+.alarm-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.alarm-sel {
+  font-family: var(--mono);
+  font-size: 1.9rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  padding: 10px 10px;
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+}
+.alarm-sel:focus { border-color: rgba(200,49,58,0.5); }
+.alarm-colon { font-family: var(--mono); font-size: 1.8rem; color: var(--text-dim); }
+.alarm-ap-sel {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  padding: 10px 8px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  text-align: center;
+}
+.alarm-label-inp {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  outline: none;
+}
+.alarm-label-inp::placeholder { color: var(--text-dim); }
+.alarm-label-inp:focus { border-color: var(--border-hi); }
+.alarm-style-btn { flex:1; font-family:var(--mono); font-size:0.62rem; letter-spacing:1px; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text-dim); cursor:pointer; transition:all 0.15s; }
+.alarm-style-btn.active { border-color:var(--red); color:var(--text-muted); background:rgba(200,49,58,0.08); }
+
+.modal-actions { display: flex; gap: 8px; }
+.btn-primary {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--red);
+  border: none;
+  border-radius: 8px;
+  padding: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-sec {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 13px 16px;
+  cursor: pointer;
+}
+.btn-sec:hover { color: var(--text-muted); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr 1fr; }
+  .col-right { grid-column: 1 / -1; border-top: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; gap: 20px; padding: 18px 20px; }
+  .col-right .sec { flex: 1; min-width: 200px; }
+  .col-mid { border-right: none; }
+}
+@media (max-width: 600px) {
+  .layout { grid-template-columns: 1fr; }
+  .col-mid { border-left: none; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .col-right { border-top: 1px solid var(--border); flex-direction: column; }
+  .clock-time { font-size: 2.8rem; }
+  .topbar-right { gap: 10px; }
+}
+@media (max-width: 380px) {
+  .topbar-stat { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <div class="topbar-left">House Hub</div>
+  <div class="topbar-right">
+    <div class="topbar-live"><div class="live-dot"></div>live</div>
+  </div>
+</div>
+
+<!-- ── LAYOUT ── -->
+<div class="layout">
+
+  <!-- LEFT COLUMN -->
+  <div class="col col-left">
+
+    <!-- Clock (no section header — it IS the anchor) -->
+    <div class="sec">
+      <div class="clock-wrap">
+        <span class="clock-time" id="clock">--:--:--</span><span class="clock-ampm" id="ampm"></span>
+      </div>
+      <div class="clock-date" id="clock-date">--</div>
+    </div>
+
+    <!-- Alarm -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">alarm</span>
+        <span class="sec-tag" id="alarm-tag">off</span>
+      </div>
+      <div class="sec-card">
+        <div class="alarm-empty" id="alarm-empty">
+          <button class="alarm-set-btn" onclick="openAlarmModal()">+ set alarm</button>
+        </div>
+        <div class="alarm-active" id="alarm-active">
+          <div class="alarm-time-disp" id="alarm-disp-time">--:--</div>
+          <div class="alarm-label-disp" id="alarm-disp-label"></div>
+          <button class="alarm-clear-btn" onclick="clearAlarm()">clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- House Sensors -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">house</span>
+      </div>
+      <div class="sec-card">
+      <div class="sensor-stack">
+
+        <div class="sensor-item">
+          <div class="sensor-top">
+            <div class="sensor-val" id="s-temp" style="color:var(--orange)">{{ data.temperature if data.temperature else '--' }}°</div>
+            <div class="sensor-meta">
+              <div class="sensor-key">Temp</div>
+              <div class="sensor-range" id="r-temp">loading</div>
+            </div>
+          </div>
+          <div class="spark-wrap"><canvas id="spark-temp"></canvas></div>
+        </div>
+
+        <div class="sensor-div"></div>
+
+        <div class="sensor-item">
+          <div class="sensor-top">
+            <div class="sensor-val" id="s-hum" style="color:var(--cyan)">{{ data.humidity if data.humidity else '--' }}%</div>
+            <div class="sensor-meta">
+              <div class="sensor-key">Humidity</div>
+              <div class="sensor-range" id="r-hum">loading</div>
+            </div>
+          </div>
+          <div class="spark-wrap"><canvas id="spark-hum"></canvas></div>
+        </div>
+
+        <div class="sensor-div"></div>
+
+        <div class="sensor-item">
+          <div class="sensor-top">
+            <div class="sensor-val" id="s-pres" style="color:var(--purple)">{{ data.pressure if data.pressure else '--' }}</div>
+            <div class="sensor-meta">
+              <div class="sensor-key">hPa</div>
+              <div class="sensor-range" id="r-pres">loading</div>
+            </div>
+          </div>
+          <div class="spark-wrap"><canvas id="spark-pres"></canvas></div>
+        </div>
+
+      </div><!-- sensor-stack -->
+      </div><!-- sec-card -->
+    </div>
+
+    <!-- Live Feed -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">live</span>
+      </div>
+      <div class="sec-card" style="padding:0;overflow:hidden;">
+        <div class="live-feed-wrap">
+          <img id="live-feed" src="/api/live/stream/msi" onerror="this.style.display='none';document.getElementById('live-offline-msg').style.display='block'">
+          <span id="live-offline-msg" class="live-offline" style="display:none;">offline</span>
+        </div>
+        <div class="live-mic-bar">
+          <div class="live-mic-status">
+            <div class="live-mic-dot" id="live-mic-dot"></div>
+            <span class="live-mic-label" id="live-mic-label">mic — --</span>
+          </div>
+          <button class="live-mic-btn" id="live-mic-btn" onclick="toggleMic()">enable</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /col-left -->
+
+
+  <!-- MIDDLE COLUMN -->
+  <div class="col col-mid">
+
+    <!-- NOW -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">now</span>
+        <span class="sec-tag">Mooroolbark</span>
+      </div>
+      <div class="sec-card">
+        <div class="wx-now-row">
+          <div class="wx-now-temp" id="wx-temp">--</div>
+          <div class="wx-now-unit">°C</div>
+          <div class="wx-feels-line" id="wx-feels">feels --°</div>
+        </div>
+        <div class="wx-condition-line" id="wx-condition">--</div>
+        <div class="wx-wind-line" id="wx-wind">--</div>
+        <div class="wx-uv-line">
+          <span>uv</span>
+          <span class="wx-uv-val" id="wx-uv">--</span>
+          <span id="wx-uv-label"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AIR -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">air quality</span>
+        <span class="sec-tag">EPA Victoria</span>
+      </div>
+      <div class="sec-card">
+        <div class="air-row">
+          <div>
+            <div class="air-index" id="air-index">--</div>
+            <div class="air-advice" id="air-advice">loading</div>
+          </div>
+          <div class="air-pm25-wrap">
+            <div class="air-pm25-val" id="air-pm25">--</div>
+            <div class="air-pm25-key">μg/m³ · PM2.5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">today</span>
+      </div>
+      <div class="sec-card">
+        <div class="rain-strip" id="rain-strip"></div>
+        <div class="sun-row">
+          <div class="sun-item">↑ rise <span id="wx-sunrise">--:--</span></div>
+          <div class="sun-item">↓ set <span id="wx-sunset">--:--</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TONIGHT -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">tonight</span>
+        <span class="sec-tag">stargazing</span>
+      </div>
+      <div class="sec-card">
+        <div class="tonight-head">
+          <div class="tonight-verdict" id="tonight-verdict">--</div>
+          <div class="tonight-meta" id="tonight-meta">-- cloud</div>
+        </div>
+        <div class="night-strip" id="night-strip"></div>
+      </div>
+    </div>
+
+  </div><!-- /col-mid -->
+
+
+  <!-- RIGHT COLUMN -->
+  <div class="col col-right">
+
+    <!-- System -->
+    <div class="sec" onclick="window.location='/device'" style="cursor:pointer">
+      <div class="sec-hd">
+        <span class="sec-label">system</span>
+        <span class="sec-tag live" id="sys-tag">ok</span>
+      </div>
+      <div class="sec-card">
+      <div class="stat-rows">
+        <div class="stat-row">
+          <div class="stat-key">cpu</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="cpu-bar" style="width:0%;background:var(--blue)"></div></div>
+          <div class="stat-val" id="cpu-val">--%</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-key">temp</div>
+          <div class="stat-inline" id="cpu-temp">--°C</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-key">ram</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="ram-bar" style="width:0%;background:var(--purple)"></div></div>
+          <div class="stat-val" id="ram-val">--%</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-key">uptime</div>
+          <div class="stat-inline" id="uptime-val">--</div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- Today -->
+    <div class="sec" onclick="window.location='/schedule'" style="cursor:pointer">
+      <div class="sec-hd">
+        <span class="sec-label">today</span>
+        <span class="sec-tag">schedule</span>
+      </div>
+      <div class="sec-card">
+        <div class="today-events" id="today-events">
+          <div class="today-empty">loading</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network -->
+    <div class="sec" onclick="window.location='/network'" style="cursor:pointer">
+      <div class="sec-hd">
+        <span class="sec-label">network</span>
+        <span class="sec-tag live" id="net-tag">--</span>
+      </div>
+      <div class="sec-card">
+        <div class="net-rows">
+          <div class="net-row">
+            <span class="net-key">pi-hole</span>
+            <span class="net-val" id="net-pihole">--</span>
+          </div>
+          <div class="net-row">
+            <span class="net-key">blocked</span>
+            <span class="net-val" id="net-blocked">--%</span>
+          </div>
+          <div class="net-row">
+            <span class="net-key">threat attempts</span>
+            <span class="net-val" id="net-bans">--</span>
+          </div>
+          <div class="net-row">
+            <span class="net-key">devices</span>
+            <span class="net-val" id="net-devices">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hub Nav -->
+    <div class="sec">
+      <div class="sec-hd">
+        <span class="sec-label">hub</span>
+      </div>
+      <div class="sec-card">
+        <div class="nav-pills">
+          <a class="nav-pill c" href="http://192.168.1.108:5003" target="_blank">API Hub</a>
+          <a class="nav-pill r" href="http://192.168.1.108:5002" target="_blank">Health</a>
+<div class="nav-pill a" onclick="launchSingularity()">Singularity</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /col-right -->
+
+</div><!-- /layout -->
+
+<div class="footer">House Hub &nbsp;·&nbsp; 192.168.1.108 &nbsp;·&nbsp; Pi 4B</div>
+
+
+<!-- ── ALARM FIRING OVERLAY ── -->
+<div id="alarm-firing" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;">
+  <div id="alarm-firing-time" style="font-family:var(--mono);font-size:5rem;color:#fff;letter-spacing:-2px;line-height:1;"></div>
+  <div id="alarm-firing-label" style="font-size:1rem;color:var(--text-dim);letter-spacing:2px;"></div>
+  <button onclick="dismissAlarm()" style="font-family:var(--mono);font-size:0.75rem;letter-spacing:2px;padding:12px 36px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;cursor:pointer;margin-top:12px;">DISMISS</button>
+</div>
+
+<audio id="soundscape-audio" src="/static/audio/soundscape.mp3" loop preload="auto"></audio>
+
+<!-- ── ALARM MODAL ── -->
+<div class="modal-overlay" id="alarm-modal" onclick="if(event.target===this)closeAlarmModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <span class="modal-title">set alarm</span>
+      <button class="modal-close" onclick="closeAlarmModal()">close</button>
+    </div>
+
+    <div class="alarm-picker">
+      <select class="alarm-sel" id="alarm-h" aria-label="Hour"></select>
+      <span class="alarm-colon">:</span>
+      <select class="alarm-sel" id="alarm-m" aria-label="Minute"></select>
+      <select class="alarm-ap-sel" id="alarm-ap">
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+
+    <input class="alarm-label-inp" type="text" id="alarm-label-inp" placeholder="Label (optional)">
+
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="alarm-style-btn active" id="style-btn-1" onclick="selectAlarmStyle(1)">⏰ Alarm</button>
+      <button class="alarm-style-btn" id="style-btn-2" onclick="selectAlarmStyle(2)">🌅 Soundscape</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="setAlarm()">Set Alarm</button>
+      <button class="btn-sec" onclick="closeAlarmModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── Clock ──────────────────────────────────────────────────────────────
+const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DSHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function tick() {
+  const n = new Date();
+  let h = n.getHours();
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const timeStr = `${String(h).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')} ${ap}`;
+  document.getElementById('clock').textContent =
+    `${h}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+  document.getElementById('ampm').textContent = ap;
+  document.getElementById('clock-date').textContent =
+    `${DAYS[n.getDay()]}  ${n.getDate()} ${MONTHS[n.getMonth()]} ${n.getFullYear()}`;
+  // Alarm check
+  if (!alarmFiring) {
+    const stored = localStorage.getItem('house_hub_alarm');
+    if (stored) {
+      const alarm = JSON.parse(stored);
+      if (alarm.time === timeStr) fireAlarm(alarm);
+    }
+  }
+}
+tick();
+setInterval(tick, 1000);
+
+// ── System stats ────────────────────────────────────────────────────────
+function pollSystem() {
+  fetch('/api/system_stats')
+    .then(r => r.json())
+    .then(d => {
+      const cpu = d.cpu_percent ?? 0;
+      const ram = d.ram_percent ?? 0;
+      document.getElementById('cpu-val').textContent   = cpu + '%';
+      document.getElementById('cpu-bar').style.width   = cpu + '%';
+      document.getElementById('cpu-bar').style.background =
+        cpu > 80 ? 'var(--rose)' : cpu > 60 ? 'var(--amber)' : 'var(--blue)';
+      document.getElementById('cpu-temp').textContent  = (d.cpu_temp ?? '--') + '°C';
+      document.getElementById('ram-val').textContent   = ram + '%';
+      document.getElementById('ram-bar').style.width   = ram + '%';
+      document.getElementById('ram-bar').style.background =
+        ram > 85 ? 'var(--rose)' : 'var(--purple)';
+      document.getElementById('uptime-val').textContent = d.uptime ?? '--';
+      document.getElementById('sys-tag').textContent   = cpu > 80 ? 'high' : 'ok';
+    })
+    .catch(() => {});
+}
+pollSystem();
+setInterval(pollSystem, 10000);
+
+// ── Sparklines ──────────────────────────────────────────────────────────
+const charts = {};
+const SPARK_CFG = {
+  temperature: { id: 'spark-temp', line: '#f97316', fill: 'rgba(249,115,22,0.1)',  valEl: 's-temp',  rangeEl: 'r-temp',  unit: '°' },
+  humidity:    { id: 'spark-hum',  line: '#22d3ee', fill: 'rgba(34,211,238,0.1)',  valEl: 's-hum',   rangeEl: 'r-hum',   unit: '%' },
+  pressure:    { id: 'spark-pres', line: '#a855f7', fill: 'rgba(168,85,247,0.1)', valEl: 's-pres',  rangeEl: 'r-pres',  unit: '' },
+};
+
+function buildSpark(sensor, data) {
+  const cfg = SPARK_CFG[sensor];
+  const ctx = document.getElementById(cfg.id)?.getContext('2d');
+  if (!ctx) return;
+  if (charts[sensor]) charts[sensor].destroy();
+  charts[sensor] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(() => ''),
+      datasets: [{ data: data.map(d => d.v), borderColor: cfg.line, backgroundColor: cfg.fill,
+                   borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false, grace: '8%' } },
+      animation: false
+    }
+  });
+}
+
+function pollSensors() {
+  Object.keys(SPARK_CFG).forEach(sensor => {
+    fetch(`/api/sensor_history/${sensor}`)
+      .then(r => r.json())
+      .then(d => {
+        const cfg = SPARK_CFG[sensor];
+        const valEl   = document.getElementById(cfg.valEl);
+        const rangeEl = document.getElementById(cfg.rangeEl);
+        if (valEl   && d.current !== null) valEl.textContent = d.current + cfg.unit;
+        if (rangeEl && d.min    !== null)  rangeEl.textContent = `↓${d.min}${cfg.unit} · ↑${d.max}${cfg.unit}`;
+        if (d.data?.length > 1) buildSpark(sensor, d.data);
+      })
+      .catch(() => {});
+  });
+}
+pollSensors();
+setInterval(pollSensors, 30000);
+
+// ── Weather ──────────────────────────────────────────────────────────────
+const WX_CODES = {
+  0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+  45:'Fog',48:'Icy fog',
+  51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
+  61:'Light rain',63:'Rain',65:'Heavy rain',
+  71:'Light snow',73:'Snow',75:'Heavy snow',77:'Snow grains',
+  80:'Light showers',81:'Showers',82:'Heavy showers',
+  85:'Light snow showers',86:'Snow showers',
+  95:'Thunderstorm',96:'Thunderstorm + hail',99:'Thunderstorm + heavy hail'
+};
+const WX_ICONS = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'❄️',75:'❄️',77:'❄️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'❄️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+
+function windDir(deg) {
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
+}
+function fmtHour(isoStr) {
+  const h = parseInt(isoStr.slice(11,13));
+  return `${h % 12 || 12}${h >= 12 ? 'pm' : 'am'}`;
+}
+function fmtSunTime(isoStr) {
+  const h = parseInt(isoStr.slice(11,13));
+  const m = isoStr.slice(14,16);
+  return `${h % 12 || 12}:${m}${h >= 12 ? 'pm' : 'am'}`;
+}
+function rainColor(pct) {
+  if (pct < 20) return 'rgba(255,255,255,0.15)';
+  if (pct < 50) return 'var(--blue)';
+  return 'var(--cyan)';
+}
+function gazingVerdict(cloud) {
+  if (cloud < 20) return { label:'clear',   color:'var(--green)' };
+  if (cloud < 50) return { label:'partial', color:'var(--amber)' };
+  return              { label:'cloudy',  color:'var(--text-dim)' };
+}
+function nightCloudAvg(times, clouds, dateStr) {
+  let sum = 0, n = 0;
+  times.forEach((t, i) => {
+    if (t.startsWith(dateStr) && parseInt(t.slice(11,13)) >= 20) { sum += clouds[i]; n++; }
+  });
+  return n ? Math.round(sum / n) : null;
+}
+
+function loadWeather() {
+  fetch('/api/weather')
+    .then(r => r.json())
+    .then(d => {
+      const cur    = d.current  || {};
+      const hourly = d.hourly   || {};
+      const daily  = d.daily    || {};
+      const times  = hourly.time || [];
+
+      // NOW
+      if (cur.temperature_2m    != null) document.getElementById('wx-temp').textContent = Math.round(cur.temperature_2m);
+      if (cur.apparent_temperature != null) document.getElementById('wx-feels').textContent = `feels ${Math.round(cur.apparent_temperature)}°`;
+      document.getElementById('wx-condition').textContent = (WX_ICONS[cur.weather_code] || '') + ' ' + (WX_CODES[cur.weather_code] || '');
+      if (cur.wind_speed_10m != null) {
+        const dir   = cur.wind_direction_10m != null ? windDir(cur.wind_direction_10m) : '';
+        const gusts = cur.wind_gusts_10m ? ` · gusts ${Math.round(cur.wind_gusts_10m)}` : '';
+        document.getElementById('wx-wind').textContent = `${Math.round(cur.wind_speed_10m)} km/h ${dir}${gusts}`;
+      }
+      if (cur.uv_index != null) {
+        const uv = cur.uv_index;
+        const uvColor = uv <= 2 ? '#4ade80' : uv <= 5 ? '#fbbf24' : uv <= 7 ? '#f97316' : uv <= 10 ? '#ef4444' : '#a855f7';
+        const uvLabel = uv <= 2 ? 'low' : uv <= 5 ? 'moderate' : uv <= 7 ? 'high' : uv <= 10 ? 'very high' : 'extreme';
+        const uvEl = document.getElementById('wx-uv');
+        uvEl.textContent = uv.toFixed(1);
+        uvEl.style.color = uvColor;
+        document.getElementById('wx-uv-label').textContent = uvLabel;
+        document.getElementById('wx-uv-label').style.color = uvColor;
+        document.getElementById('wx-uv-label').style.opacity = '0.7';
+      }
+
+      // TODAY — rain strip, next 12h
+      const now = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      const nowStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
+      let si = times.findIndex(t => t >= nowStr);
+      if (si < 0) si = 0;
+      const t12 = times.slice(si, si + 12);
+      const r12 = (hourly.precipitation_probability || []).slice(si, si + 12);
+      document.getElementById('rain-strip').innerHTML = t12.map((t, i) => {
+        const pct = r12[i] ?? 0;
+        const h   = Math.max(6, Math.round((pct / 100) * 32));
+        return `<div class="rain-item">
+          <div class="rain-pct">${pct}%</div>
+          <div class="rain-bar-wrap"><div class="rain-bar" style="height:${h}px;background:${rainColor(pct)}"></div></div>
+          <div class="rain-time">${fmtHour(t)}</div>
+        </div>`;
+      }).join('');
+
+      // TODAY — sunrise / sunset
+      if (daily.sunrise?.[0]) document.getElementById('wx-sunrise').textContent = fmtSunTime(daily.sunrise[0]);
+      if (daily.sunset?.[0])  document.getElementById('wx-sunset').textContent  = fmtSunTime(daily.sunset[0]);
+
+      // TONIGHT
+      const clouds = hourly.cloud_cover || [];
+      const dates  = daily.time || [];
+      if (dates[0]) {
+        const tc = nightCloudAvg(times, clouds, dates[0]);
+        if (tc !== null) {
+          const v = gazingVerdict(tc);
+          document.getElementById('tonight-verdict').textContent = v.label;
+          document.getElementById('tonight-verdict').style.color = v.color;
+          document.getElementById('tonight-meta').textContent = `${tc}% cloud`;
+        }
+      }
+
+      // NIGHT STRIP — next 5 nights
+      document.getElementById('night-strip').innerHTML = dates.slice(1, 6).map(ds => {
+        const dt    = new Date(ds + 'T12:00:00');
+        const name  = DSHORT[dt.getDay()];
+        const cloud = nightCloudAvg(times, clouds, ds);
+        const v     = cloud !== null ? gazingVerdict(cloud) : { label:'--', color:'var(--text-dim)' };
+        return `<div class="night-item">
+          <div class="night-name">${name}</div>
+          <div class="night-dot" style="background:${v.color};opacity:${cloud !== null ? 1 : 0.3}"></div>
+          <div class="night-pct">${cloud !== null ? cloud + '%' : '--'}</div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {});
+}
+
+// ── Air Quality ──────────────────────────────────────────────────────────
+function loadEPA() {
+  fetch('/api/epa')
+    .then(r => r.json())
+    .then(d => {
+      const advices = d.siteHealthAdvices || [];
+      const params  = d.parameters || [];
+      if (advices.length) {
+        const color = advices[0].healthAdviceColor || 'var(--text-dim)';
+        document.getElementById('air-index').style.color  = color;
+        document.getElementById('air-advice').textContent = advices[0].healthAdvice || '';
+        document.getElementById('air-advice').style.color   = color;
+        document.getElementById('air-advice').style.opacity = '0.65';
+      }
+      const apiP = params.find(p => p.name === 'API');
+      if (apiP) {
+        const val = apiP.timeSeriesReadings?.[0]?.readings?.[0]?.averageValue;
+        if (val != null) document.getElementById('air-index').textContent = val.toFixed(1);
+      }
+      const pm25 = params.find(p => p.name === 'PM2.5');
+      if (pm25) {
+        const val = pm25.timeSeriesReadings?.[0]?.readings?.[0]?.averageValue;
+        if (val != null) document.getElementById('air-pm25').textContent = val.toFixed(1);
+      }
+    })
+    .catch(() => {});
+}
+
+loadWeather();
+loadEPA();
+setInterval(loadWeather, 300000);
+setInterval(loadEPA,     600000);
+
+// ── Network Tile ─────────────────────────────────────────────────────────
+function loadNetworkTile() {
+  fetch('/api/network/tile')
+    .then(r => r.json())
+    .then(d => {
+      const ph = d.pihole || {};
+      const cs = d.crowdsec || {};
+      const dv = d.devices || {};
+      document.getElementById('net-pihole').textContent  = ph.online ? (ph.blocking ? 'on' : 'off') : 'offline';
+      document.getElementById('net-pihole').style.color  = ph.online ? (ph.blocking ? 'var(--green)' : 'var(--rose)') : 'var(--text-dim)';
+      document.getElementById('net-blocked').textContent = ph.block_pct != null ? ph.block_pct + '%' : '--%';
+      document.getElementById('net-bans').textContent    = cs.bans != null ? cs.bans : '--';
+      document.getElementById('net-bans').style.color    = cs.bans > 0 ? 'var(--rose)' : 'var(--text-muted)';
+      document.getElementById('net-devices').textContent = dv.count != null ? dv.count : '--';
+      document.getElementById('net-tag').textContent     = ph.online ? 'ok' : 'err';
+      document.getElementById('net-tag').style.color     = ph.online ? 'var(--green)' : 'var(--rose)';
+    })
+    .catch(() => {});
+}
+loadNetworkTile();
+setInterval(loadNetworkTile, 60000);
+
+// ── Today's Events ───────────────────────────────────────────────────────
+function loadTodayEvents() {
+  fetch('/api/events')
+    .then(r => r.json())
+    .then(events => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      const todayEvents = events.filter(e => {
+        const s = e.start.slice(0, 10);
+        const en = e.end.slice(0, 10);
+        return s <= todayStr && todayStr < en || s === todayStr;
+      });
+      const el = document.getElementById('today-events');
+      if (!todayEvents.length) {
+        el.innerHTML = '<div class="today-empty">nothing on today</div>';
+        return;
+      }
+      el.innerHTML = todayEvents.map(e => {
+        const isAllDay = e.start.length === 10;
+        const timeStr = isAllDay ? 'all day' : new Date(e.start).toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit', hour12:true}).toLowerCase();
+        return `<div class="today-event">
+          <div class="today-event-dot" style="background:${e.color || 'var(--text-dim)'}"></div>
+          <div class="today-event-body">
+            <div class="today-event-title">${e.title}</div>
+            <div class="today-event-time">${timeStr}</div>
+          </div>
+        </div>`;
+      }).join('');
+    })
+    .catch(() => {});
+}
+loadTodayEvents();
+setInterval(loadTodayEvents, 300000);
+
+// ── Alarm Audio Engine ───────────────────────────────────────────────────
+let alarmStyle = 1;
+let alarmFiring = false;
+let beepInterval = null;
+let audioCtx = null;
+let soundscapeGain = null;
+let fadeInterval = null;
+
+function selectAlarmStyle(s) {
+  alarmStyle = s;
+  document.getElementById('style-btn-1').classList.toggle('active', s === 1);
+  document.getElementById('style-btn-2').classList.toggle('active', s === 2);
+}
+
+function beep() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.frequency.value = 880;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+}
+
+function startAlarmSound(style) {
+  if (style === 1) {
+    beep();
+    beepInterval = setInterval(beep, 800);
+  } else {
+    const audio = document.getElementById('soundscape-audio');
+    audio.volume = 0;
+    audio.play().catch(() => {});
+    let vol = 0;
+    fadeInterval = setInterval(() => {
+      vol = Math.min(1, vol + 1/120);
+      audio.volume = vol;
+      if (vol >= 1) clearInterval(fadeInterval);
+    }, 500);
+  }
+}
+
+function stopAlarmSound() {
+  if (beepInterval) { clearInterval(beepInterval); beepInterval = null; }
+  if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
+  const audio = document.getElementById('soundscape-audio');
+  audio.pause(); audio.currentTime = 0; audio.volume = 0;
+}
+
+function fireAlarm(alarm) {
+  if (alarmFiring) return;
+  alarmFiring = true;
+  const overlay = document.getElementById('alarm-firing');
+  overlay.style.display = 'flex';
+  document.getElementById('alarm-firing-time').textContent = alarm.time;
+  document.getElementById('alarm-firing-label').textContent = (alarm.label || '').toUpperCase();
+  startAlarmSound(alarm.style || 1);
+}
+
+function dismissAlarm() {
+  alarmFiring = false;
+  document.getElementById('alarm-firing').style.display = 'none';
+  stopAlarmSound();
+}
+
+// Prime AudioContext on first interaction so autoplay works
+document.addEventListener('click', function primeAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const audio = document.getElementById('soundscape-audio');
+  audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {});
+  document.removeEventListener('click', primeAudio);
+}, { once: true });
+
+// ── Alarm ────────────────────────────────────────────────────────────────
+function loadAlarm() {
+  const stored = localStorage.getItem('house_hub_alarm');
+  if (!stored) return;
+  renderAlarm(JSON.parse(stored));
+}
+
+function renderAlarm(alarm) {
+  document.getElementById('alarm-empty').style.display  = 'none';
+  document.getElementById('alarm-active').style.display = 'flex';
+  document.getElementById('alarm-disp-time').textContent  = alarm.time;
+  document.getElementById('alarm-disp-label').textContent = alarm.label || '';
+  document.getElementById('alarm-tag').textContent        = alarm.time;
+}
+
+function clearAlarm() {
+  localStorage.removeItem('house_hub_alarm');
+  document.getElementById('alarm-active').style.display = 'none';
+  document.getElementById('alarm-empty').style.display  = 'flex';
+  document.getElementById('alarm-tag').textContent      = 'off';
+}
+
+function openAlarmModal() {
+  const hSel = document.getElementById('alarm-h');
+  const mSel = document.getElementById('alarm-m');
+  if (!hSel.options.length) {
+    for (let i = 1; i <= 12; i++)
+      hSel.add(new Option(String(i).padStart(2,'0'), i));
+    for (let i = 0; i < 60; i += 5)
+      mSel.add(new Option(String(i).padStart(2,'0'), i));
+  }
+  // Pre-fill with current + 1h if no alarm set
+  const stored = localStorage.getItem('house_hub_alarm');
+  if (!stored) {
+    const now = new Date();
+    let h = (now.getHours() + 1) % 24;
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    hSel.value = h;
+    mSel.value = 0;
+    document.getElementById('alarm-ap').value = ap;
+  }
+  document.getElementById('alarm-modal').classList.add('show');
+}
+
+function closeAlarmModal() {
+  document.getElementById('alarm-modal').classList.remove('show');
+}
+
+function setAlarm() {
+  const h  = document.getElementById('alarm-h').value;
+  const m  = document.getElementById('alarm-m').value;
+  const ap = document.getElementById('alarm-ap').value;
+  const label = document.getElementById('alarm-label-inp').value.trim();
+  const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ${ap}`;
+  const alarm = { time: timeStr, label, style: alarmStyle };
+  localStorage.setItem('house_hub_alarm', JSON.stringify(alarm));
+  renderAlarm(alarm);
+  closeAlarmModal();
+}
+
+// ── Singularity ──────────────────────────────────────────────────────────
+async function launchSingularity() {
+  try {
+    const res  = await fetch('/api/launch/singularity', { method: 'POST' });
+    const data = await res.json();
+    window.open(data.url, '_blank');
+  } catch(e) {}
+}
+
+// ── Live mic ─────────────────────────────────────────────────────────────
+async function pollMicStatus() {
+  try {
+    const r = await fetch('/api/live/mic/msi/status');
+    const d = await r.json();
+    const dot   = document.getElementById('live-mic-dot');
+    const label = document.getElementById('live-mic-label');
+    const btn   = document.getElementById('live-mic-btn');
+    if (d.active) {
+      dot.classList.add('active');
+      label.textContent = 'mic — live';
+      btn.textContent   = 'mute';
+    } else {
+      dot.classList.remove('active');
+      label.textContent = 'mic — off';
+      btn.textContent   = 'enable';
+    }
+    btn.disabled = false;
+  } catch { /* MSI offline — leave placeholder state */ }
+}
+
+async function toggleMic() {
+  try {
+    await fetch('/api/live/mic/msi/toggle', { method: 'POST' });
+    pollMicStatus();
+  } catch {}
+}
+
+pollMicStatus();
+setInterval(pollMicStatus, 8000);
+
+// ── ESC ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAlarmModal(); });
+
+loadAlarm();
+</script>
+</body>
+</html>

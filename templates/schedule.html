@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule — Pi Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F9F6EE;
+            --card: #ffffff;
+            --border: #F9F6EE;
+            --text: #202124;
+            --text-muted: #70757a;
+            --text-light: #bdc1c6;
+            --today: #16a34a;
+            --dan: #4a9eff;
+            --tien: #f472b6;
+            --other-month: #f0ece4;
+            --shadow: 0 1px 3px rgba(60,64,67,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            font-family: 'Roboto', sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            background: var(--bg);
+            border-bottom: 1px solid #e8e4db;
+            gap: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--card);
+            border: 1px solid #e8e4db;
+            border-radius: 24px;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            text-decoration: none;
+            transition: box-shadow 0.15s;
+        }
+
+        .back-btn:hover { box-shadow: var(--shadow); }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        .cal-toolbar {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            gap: 12px;
+            background: var(--bg);
+        }
+
+        .nav-group { display: flex; align-items: center; gap: 4px; }
+
+        .today-btn {
+            padding: 8px 18px;
+            border: 1px solid #e8e4db;
+            background: var(--card);
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .today-btn:hover { box-shadow: var(--shadow); }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .nav-btn:hover { background: rgba(60,64,67,0.08); }
+
+        .cal-title {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text);
+        }
+
+        .view-switcher {
+            margin-left: auto;
+            display: flex;
+            border: 1px solid #e8e4db;
+            border-radius: 24px;
+            overflow: hidden;
+            background: var(--card);
+        }
+
+        .view-btn {
+            padding: 8px 18px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-right: 1px solid #e8e4db;
+        }
+
+        .view-btn:last-child { border-right: none; }
+        .view-btn:hover { background: rgba(60,64,67,0.05); }
+        .view-btn.active { background: #e8f0fe; color: #1967d2; }
+
+        /* =====================
+           MONTH VIEW
+        ===================== */
+
+        .month-container {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        /* Day labels */
+        .day-labels-row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            background: var(--card);
+            border-bottom: 1px solid #e8e4db;
+        }
+
+        .day-labels-row .day-label-cell {
+            display: table-cell;
+            width: 14.2857%;
+            text-align: center;
+            padding: 8px 0;
+        }
+
+        .day-label-pill {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            background: var(--bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Calendar table */
+        .cal-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background: var(--border);
+        }
+
+        .cal-table td {
+            width: 14.2857%;
+            height: 140px;
+            vertical-align: top;
+            padding: 8px;
+            background: var(--card);
+            border: 1px solid #e8e4db;
+            overflow: hidden;
+        }
+
+        .cal-table td.other-month {
+            background: var(--other-month);
+        }
+
+        .cal-table td.other-month .day-num {
+            color: #b0a898;
+        }
+
+        .cal-table td.other-month .day-event-pill {
+            opacity: 0.5;
+        }
+
+        .cal-table td.today {
+            background: #f0fdf4;
+        }
+
+        .day-num {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text);
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-bottom: 4px;
+            flex-shrink: 0;
+        }
+
+        .cal-table td.today .day-num {
+            background: var(--today);
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            width: 34px;
+            height: 34px;
+            box-shadow: 0 2px 8px rgba(22,163,74,0.4);
+        }
+
+        .day-events {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .day-event-pill {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            width: 100%;
+        }
+
+        /* =====================
+           WEEK / DAY VIEW
+        ===================== */
+
+        .time-grid-wrap {
+            background: var(--card);
+            overflow-y: auto;
+            max-height: calc(100vh - 160px);
+        }
+
+        .week-header {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            border-bottom: 1px solid #e8e4db;
+            background: var(--card);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .week-header-row { display: table-row; }
+
+        .week-header-gutter {
+            display: table-cell;
+            width: 52px;
+            border-right: 1px solid #e8e4db;
+        }
+
+        .week-day-head {
+            display: table-cell;
+            text-align: center;
+            padding: 10px 0;
+            border-left: 1px solid #e8e4db;
+        }
+
+        .wday {
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .wdate {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .today-col .wdate {
+            background: var(--today);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .time-body {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .time-body-row { display: table-row; }
+
+        .time-gutter-cell {
+            display: table-cell;
+            width: 52px;
+            height: 48px;
+            border-right: 1px solid #e8e4db;
+            border-bottom: 1px solid rgba(232,228,219,0.5);
+            vertical-align: top;
+            padding-top: 2px;
+            padding-right: 6px;
+            text-align: right;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .time-day-cell {
+            display: table-cell;
+            height: 48px;
+            border-left: 1px solid #e8e4db;
+            border-bottom: 1px solid rgba(232,228,219,0.5);
+            position: relative;
+            vertical-align: top;
+        }
+
+        .timed-event {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+            overflow: hidden;
+            cursor: pointer;
+            z-index: 2;
+            line-height: 1.4;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        /* =====================
+           LIST VIEW
+        ===================== */
+
+        .list-view { padding: 8px 0; background: var(--card); }
+
+        .list-date-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px 8px;
+            background: var(--bg);
+        }
+
+        .list-date-num {
+            font-size: 1.6rem;
+            font-weight: 300;
+            color: var(--text);
+            min-width: 36px;
+        }
+
+        .list-date-info { display: flex; flex-direction: column; }
+        .list-date-day { font-size: 0.82rem; font-weight: 500; color: var(--text); }
+        .list-date-month { font-size: 0.75rem; color: var(--text-muted); }
+
+        .list-event {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(232,228,219,0.6);
+        }
+
+        .list-event:hover { background: rgba(60,64,67,0.04); cursor: pointer; }
+        .list-event-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .list-event-time { font-size: 0.8rem; color: var(--text-muted); min-width: 90px; }
+        .list-event-title { font-size: 0.88rem; color: var(--text); }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="/" class="back-btn">← Home</a>
+        <div class="page-title">Schedule</div>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4a9eff"></div> Dan</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div> Tien</div>
+        </div>
+    </div>
+
+    <div class="cal-toolbar">
+        <div class="nav-group">
+            <button class="today-btn" onclick="goToday()">Today</button>
+            <button class="nav-btn" onclick="navigate(-1)">‹</button>
+            <button class="nav-btn" onclick="navigate(1)">›</button>
+        </div>
+        <div class="cal-title" id="calTitle"></div>
+        <div class="view-switcher">
+            <button class="view-btn active" onclick="setView('month', this)">Month</button>
+            <button class="view-btn" onclick="setView('week', this)">Week</button>
+            <button class="view-btn" onclick="setView('day', this)">Day</button>
+            <button class="view-btn" onclick="setView('list', this)">List</button>
+        </div>
+    </div>
+
+    <div id="calBody"></div>
+
+    <script>
+        const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const DAYS_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        let currentDate = new Date();
+        let currentView = 'month';
+        let allEvents = [];
+
+        async function loadEvents() {
+            try {
+                const res = await fetch('/api/events');
+                allEvents = await res.json();
+            } catch(e) {}
+            render();
+        }
+
+        function pad(n) { return String(n).padStart(2,'0'); }
+        function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+        function todayStr() { return toDateStr(new Date()); }
+
+        function getEventsForDate(ds) {
+            return allEvents.filter(e => {
+                const start = e.start.split('T')[0];
+                const end = e.end ? e.end.split('T')[0] : start;
+                return ds >= start && ds <= end;
+            });
+        }
+
+        function getTimedEventsForDateHour(ds, hour) {
+            return allEvents.filter(e => {
+                if (!e.start.includes('T')) return false;
+                if (e.start.split('T')[0] !== ds) return false;
+                return parseInt(e.start.split('T')[1].split(':')[0]) === hour;
+            });
+        }
+
+        function formatTime(isoStr) {
+            if (!isoStr || !isoStr.includes('T')) return 'All Day';
+            const parts = isoStr.split('T')[1].split(':');
+            let h = parseInt(parts[0]);
+            const m = parts[1];
+            const ampm = h >= 12 ? 'pm' : 'am';
+            h = h % 12 || 12;
+            return m === '00' ? `${h}${ampm}` : `${h}:${m}${ampm}`;
+        }
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+            return d;
+        }
+
+        function setView(view, btn) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+        }
+
+        function navigate(dir) {
+            if (currentView === 'month' || currentView === 'list') currentDate.setMonth(currentDate.getMonth() + dir);
+            else if (currentView === 'week') currentDate.setDate(currentDate.getDate() + dir * 7);
+            else currentDate.setDate(currentDate.getDate() + dir);
+            render();
+        }
+
+        function goToday() { currentDate = new Date(); render(); }
+
+        function render() {
+            const title = document.getElementById('calTitle');
+            const body = document.getElementById('calBody');
+            const today = todayStr();
+
+            if (currentView === 'month') {
+                title.textContent = `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+                body.innerHTML = renderMonth(today);
+            } else if (currentView === 'week') {
+                const ws = getWeekStart(currentDate);
+                const we = new Date(ws); we.setDate(we.getDate() + 6);
+                title.textContent = `${ws.getDate()} ${MONTHS_SHORT[ws.getMonth()]} — ${we.getDate()} ${MONTHS_SHORT[we.getMonth()]} ${we.getFullYear()}`;
+                body.innerHTML = renderWeek(today);
+            } else if (currentView === 'day') {
+                title.textContent = `${DAYS_FULL[currentDate.getDay()]}, ${currentDate.getDate()} ${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+                body.innerHTML = renderDay(today);
+            } else {
+                title.textContent = `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+                body.innerHTML = renderList();
+            }
+        }
+
+        function renderMonth(today) {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const firstDay = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+            let html = `<div class="day-labels-row">
+                ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d =>
+                    `<div class="day-label-cell"><span class="day-label-pill">${d}</span></div>`
+                ).join('')}
+            </div>
+            <table class="cal-table"><tbody>`;
+
+            const allCells = [];
+
+            for (let i = 0; i < startOffset; i++) {
+                allCells.push({ date: new Date(y, m, 1 - (startOffset - i)), other: true });
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                allCells.push({ date: new Date(y, m, d), other: false });
+            }
+            const remaining = (7 - (allCells.length % 7)) % 7;
+            for (let i = 1; i <= remaining; i++) {
+                allCells.push({ date: new Date(y, m + 1, i), other: true });
+            }
+
+            for (let i = 0; i < allCells.length; i++) {
+                if (i % 7 === 0) html += '<tr>';
+                const { date, other } = allCells[i];
+                const ds = toDateStr(date);
+                const isToday = ds === today;
+                const evs = getEventsForDate(ds);
+                html += `<td class="${other ? 'other-month' : ''}${isToday ? ' today' : ''}">
+                    <div class="day-num">${date.getDate()}</div>
+                    <div class="day-events">${evs.map(e =>
+                        `<div class="day-event-pill" style="background:${e.color}">${e.title}</div>`
+                    ).join('')}</div>
+                </td>`;
+                if (i % 7 === 6) html += '</tr>';
+            }
+
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function renderTimeGrid(days) {
+            const colCount = days.length;
+
+            let html = '<div class="time-grid-wrap">';
+
+            // Header
+            html += `<div class="week-header"><div class="week-header-row">
+                <div class="week-header-gutter"></div>`;
+            days.forEach(({date, isToday}) => {
+                html += `<div class="week-day-head${isToday ? ' today-col' : ''}">
+                    <div class="wday">${DAYS_SHORT[date.getDay()]}</div>
+                    <div class="wdate">${date.getDate()}</div>
+                </div>`;
+            });
+            html += '</div></div>';
+
+            // Time rows
+            html += '<div class="time-body">';
+            for (let h = 0; h < 24; h++) {
+                const label = h === 0 ? '' : `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`;
+                html += `<div class="time-body-row">
+                    <div class="time-gutter-cell">${label}</div>`;
+                days.forEach(({ds}) => {
+                    const evs = getTimedEventsForDateHour(ds, h);
+                    let evHtml = evs.map(e => {
+                        const startMin = parseInt(e.start.split('T')[1].split(':')[1]);
+                        const endParts = e.end?.split('T')[1]?.split(':');
+                        const endH = endParts ? parseInt(endParts[0]) : h + 1;
+                        const endMin = endParts ? parseInt(endParts[1]) : 0;
+                        const top = (startMin / 60) * 48;
+                        const height = Math.max(((endH - h) + (endMin - startMin) / 60) * 48 - 2, 20);
+                        return `<div class="timed-event" style="background:${e.color};top:${top}px;height:${height}px">${formatTime(e.start)} ${e.title}</div>`;
+                    }).join('');
+                    html += `<div class="time-day-cell">${evHtml}</div>`;
+                });
+                html += '</div>';
+            }
+            html += '</div></div>';
+            return html;
+        }
+
+        function renderWeek(today) {
+            const ws = getWeekStart(currentDate);
+            return renderTimeGrid(Array.from({length: 7}, (_, i) => {
+                const d = new Date(ws); d.setDate(d.getDate() + i);
+                return { date: d, ds: toDateStr(d), isToday: toDateStr(d) === today };
+            }));
+        }
+
+        function renderDay(today) {
+            const ds = toDateStr(currentDate);
+            return renderTimeGrid([{ date: new Date(currentDate), ds, isToday: ds === today }]);
+        }
+
+        function renderList() {
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            let html = '<div class="list-view">';
+            let hasAny = false;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(y, m, d);
+                const ds = toDateStr(date);
+                const evs = getEventsForDate(ds);
+                if (!evs.length) continue;
+                hasAny = true;
+                html += `<div class="list-group">
+                    <div class="list-date-header">
+                        <div class="list-date-num">${d}</div>
+                        <div class="list-date-info">
+                            <div class="list-date-day">${DAYS_FULL[date.getDay()]}</div>
+                            <div class="list-date-month">${MONTHS_SHORT[m]} ${y}</div>
+                        </div>
+                    </div>`;
+                evs.forEach(e => {
+                    html += `<div class="list-event">
+                        <div class="list-event-color" style="background:${e.color}"></div>
+                        <div class="list-event-time">${formatTime(e.start)}</div>
+                        <div class="list-event-title">${e.title}</div>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            if (!hasAny) html += '<div class="empty-state">No events this month</div>';
+            return html + '</div>';
+        }
+
+        loadEvents();
+    </script>
+
+</body>
+</html>
